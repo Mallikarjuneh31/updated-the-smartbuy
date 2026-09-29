@@ -17,6 +17,7 @@ load_dotenv()
 
 from database import init_db, get_user_by_id, get_user_unread_inbox_count, get_admin_unread_count
 from api import api_bp
+from services.price_alert_service import start_price_alert_scheduler
 
 # App Setup
 app = Flask(__name__)
@@ -26,6 +27,8 @@ app.secret_key = os.getenv("SECRET_KEY", "smartbuy_super_secret_key_2026")
 # Vercel has no local MongoDB service, so avoid blocking function startup there.
 if not os.getenv("VERCEL") or os.getenv("MONGO_URI"):
     init_db(app)
+    # Start background price alert checker daemon
+    start_price_alert_scheduler()
 
 # Inject current logged-in user & inbox unread count into template context
 @app.context_processor

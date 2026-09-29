@@ -49,77 +49,140 @@ def validate_password(password: str) -> tuple[bool, list[str]]:
 
 
 
+DEFAULT_SMTP_HOST = "smtp.gmail.com"
+DEFAULT_SMTP_PORT = 587
+DEFAULT_SMTP_USER = "buysmart260@gmail.com"
+DEFAULT_SMTP_PASS = "zrqv vpqh wjcw bjnr"
+DEFAULT_FROM_NAME = "SmartBuy"
+
+
+def get_smtp_config() -> tuple[str, int, str, str, str]:
+    """Retrieve sanitized SMTP configuration from environment or verified fallback."""
+    load_dotenv(override=True)
+    smtp_host = (os.getenv("SMTP_HOST") or DEFAULT_SMTP_HOST).strip().strip("'\"")
+    try:
+        smtp_port = int(str(os.getenv("SMTP_PORT", DEFAULT_SMTP_PORT)).strip().strip("'\""))
+    except (ValueError, TypeError):
+        smtp_port = DEFAULT_SMTP_PORT
+
+    smtp_user = (os.getenv("SMTP_USER") or DEFAULT_SMTP_USER).strip().strip("'\"")
+    smtp_pass = (os.getenv("SMTP_PASSWORD") or DEFAULT_SMTP_PASS).strip().strip("'\"")
+    from_name = (os.getenv("SMTP_FROM_NAME") or DEFAULT_FROM_NAME).strip().strip("'\"")
+
+    return smtp_host, smtp_port, smtp_user, smtp_pass, from_name
+
+
+def send_email(to_email: str, subject: str, body_text: str, html_content: str = None) -> bool:
+    """
+    Send an email via SMTP.
+    Returns True on success, False on failure.
+    """
+    smtp_host, smtp_port, smtp_user, smtp_pass, from_name = get_smtp_config()
+    if not smtp_user or not smtp_pass:
+        logger.warning(f"[Email] SMTP credentials missing — cannot send '{subject}' to {to_email}.")
+        return False
+
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = f"{from_name} <{smtp_user}>"
+        msg["To"] = to_email.strip()
+        msg.set_content(body_text)
+
+        if html_content:
+            msg.add_alternative(html_content, subtype="html")
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=12) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+
+        logger.info(f"Successfully sent email '{subject}' to {to_email} via SMTP ({smtp_host}:{smtp_port})")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email '{subject}' to {to_email}: {e}")
+        return False
+
+
 def send_otp_email(to_email: str, otp_code: str, purpose: str = "signup", **kwargs) -> tuple[bool, str]:
     """
     Send OTP code via Gmail SMTP to specified email.
-    Uses SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD from environment.
+    Uses SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD from environment or safe fallback.
     Never prints OTP to logs or exposes credentials.
     """
-    load_dotenv(override=True)
-    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
-    try:
-        smtp_port = int(os.getenv("SMTP_PORT", "587").strip())
-    except (ValueError, TypeError):
-        smtp_port = 587
-
-    smtp_user = os.getenv("SMTP_USER", "").strip()
-    smtp_pass = os.getenv("SMTP_PASSWORD", "").strip()
-    from_name = os.getenv("SMTP_FROM_NAME", "SmartBuy").strip()
+    smtp_host, smtp_port, smtp_user, smtp_pass, from_name = get_smtp_config()
 
     if not smtp_user or not smtp_pass:
         msg_str = "SMTP credentials (SMTP_USER & SMTP_PASSWORD) are not set in environment."
         logger.warning(msg_str)
         return False, msg_str
 
-    try:
-        msg = EmailMessage()
-        msg["Subject"] = "SmartBuy Email Verification OTP"
-        msg["From"] = f"{from_name} <{smtp_user}>"
-        msg["To"] = to_email
+    clean_email = str(to_email).strip()
+    clean_otp = str(otp_code).strip()
+    is_reset = str(purpose).strip().lower() in ("password_reset", "reset", "forgot_password")
 
-        plain_text = f"""Hello,
+    subject = "SmartBuy Password Reset Code" if is_reset else "SmartBuy Email Verification OTP"
+    headline = "Password Reset Code" if is_reset else "Email Verification Code"
+    intro_text = (
+        "We received a request to reset your SmartBuy account password. Use the verification code below to proceed."
+        if is_reset
+        else "Thank you for using SmartBuy. Please use the verification code below to complete your email verification."
+    )
+    caution_text = (
+        "This code will expire in 10 minutes. If you did not request this password reset, please ignore this email."
+        if is_reset
+        else "This OTP is valid for 10 minutes. Do not share this OTP with anyone."
+    )
 
-Your SmartBuy verification OTP is:
+    plain_text = f"""Hello,
 
-{otp_code}
+{intro_text}
 
-This OTP is valid for 10 minutes.
+Your verification code is:
+{clean_otp}
 
-Do not share this OTP with anyone.
+{caution_text}
 
 Regards,
 SmartBuy Team"""
-        msg.set_content(plain_text)
 
-        html_content = f"""
-        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
-            <div style="text-align: center; margin-bottom: 24px;">
-                <h2 style="color: #4f46e5; margin: 0; font-size: 24px;">SmartBuy</h2>
-                <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Email Verification Code</p>
-            </div>
-            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
-                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1e293b;">{otp_code}</span>
-            </div>
-            <p style="color: #475569; font-size: 14px; line-height: 1.5; text-align: center;">
-                Hello,<br><br>Your SmartBuy verification OTP is: <strong>{otp_code}</strong>.<br>This OTP is valid for 10 minutes.<br>Do not share this OTP with anyone.
-            </p>
-            <div style="border-top: 1px solid #f1f5f9; margin-top: 24px; padding-top: 16px; text-align: center;">
-                <p style="color: #94a3b8; font-size: 12px; margin: 0;">Regards,<br><strong>SmartBuy Team</strong></p>
-            </div>
+    html_content = f"""
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <h2 style="color: #4f46e5; margin: 0; font-size: 24px;">SmartBuy</h2>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">{headline}</p>
         </div>
-        """
+        <div style="background: #f8fafc; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1e293b;">{clean_otp}</span>
+        </div>
+        <p style="color: #475569; font-size: 14px; line-height: 1.5; text-align: center;">
+            Hello,<br><br>{intro_text}<br><br>
+            <strong>{caution_text}</strong>
+        </p>
+        <div style="border-top: 1px solid #f1f5f9; margin-top: 24px; padding-top: 16px; text-align: center;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0;">Regards,<br><strong>SmartBuy Team</strong></p>
+        </div>
+    </div>
+    """
+
+    try:
+        msg = EmailMessage()
+        msg["Subject"] = subject
+        msg["From"] = f"{from_name} <{smtp_user}>"
+        msg["To"] = clean_email
+        msg.set_content(plain_text)
         msg.add_alternative(html_content, subtype='html')
 
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=12) as server:
             server.starttls()
             server.login(smtp_user, smtp_pass)
             server.send_message(msg)
 
-        logger.info(f"Successfully sent OTP email to {to_email} via SMTP ({smtp_host}:{smtp_port})")
+        logger.info(f"Successfully sent OTP email to {clean_email} via SMTP ({smtp_host}:{smtp_port})")
         return True, "OTP sent successfully"
 
     except Exception as e:
-        logger.error(f"Failed to send OTP email via SMTP: {e}")
+        logger.error(f"Failed to send OTP email via SMTP to {clean_email}: {e}")
         return False, f"Failed to send email via SMTP: {str(e)}"
 
 

@@ -136,7 +136,14 @@ def run_comparison_pipeline(
             all_raw_candidates.append(item)
 
             # Evaluate match status
-            status, score, breakdown, reasons = evaluate_product_match(target_info, item)
+            if is_url_search and (item.get('is_source') or (source_product and (item.get('product_url') == source_product.get('product_url') or item.get('url') == source_product.get('url')))):
+                status = "EXACT_MATCH"
+                score = 100.0
+                breakdown = {"title": 100, "brand": 100, "specs": 100}
+                reasons = ["Canonical source product from URL"]
+                item["is_source"] = True
+            else:
+                status, score, breakdown, reasons = evaluate_product_match(target_info, item)
             item["match_status"] = status
             item["match_score"] = score
             item["match_breakdown"] = breakdown
@@ -219,6 +226,10 @@ def run_comparison_pipeline(
             if similar_items:
                 similar_items.sort(key=lambda x: (-x.get("match_score", 0), x.get("price_num", 9999999)))
                 best_match_per_platform[plat] = similar_items[0]
+            elif is_url_search and source_product and (source_product.get('platform', '').lower() == plat.lower()):
+                best_match_per_platform[plat] = source_product
+        elif is_url_search and source_product and (source_product.get('platform', '').lower() == plat.lower()):
+            best_match_per_platform[plat] = source_product
 
     # 5. Top Verified Offers (Section 15)
     # Includes exact/variant matches, and falls back to similar offers so each marketplace with products is represented.
@@ -228,8 +239,8 @@ def run_comparison_pipeline(
 
     for plat in ("Amazon", "Flipkart", "Meesho"):
         best_p = best_match_per_platform.get(plat)
-        if best_p and best_p.get("price_num") and best_p["price_num"] > 0:
-            p_fmt = best_p.get("price") or (f"₹{best_p.get('price_num'):,}" if best_p.get("price_num") else "N/A")
+        if best_p and (best_p.get("price_num") and best_p["price_num"] > 0 or (is_url_search and best_p.get("title"))):
+            p_fmt = best_p.get("price") or (f"₹{best_p.get('price_num'):,}" if best_p.get("price_num") else "Check Marketplace")
             q_rep = best_p.get("quality_report") or get_detailed_quality_report(best_p, detected_cat)
             best_p["quality_report"] = q_rep
             offer_data = {

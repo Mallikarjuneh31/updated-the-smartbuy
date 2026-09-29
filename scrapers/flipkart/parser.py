@@ -20,9 +20,15 @@ def parse_flipkart_card(card: bs4.element.Tag) -> Optional[Dict[str, Any]]:
         brand = brand_elem.get_text(strip=True) if brand_elem else ""
 
         # Title
-        title_elem = card.select_one('div.KzDlHZ, a.wjcEIp, a.WKTcLC, div._4rR01T, a.s1Q9rs, div._2W96wQ, a.IRpwTa, div.RG5Slk, div.nZIRY7, a.atJtCj')
+        title_elem = card.select_one('div.KzDlHZ, a.wjcEIp, a.WKTcLC, div._4rR01T, a.s1Q9rs, div._2W96wQ, a.IRpwTa, div.RG5Slk, div.nZIRY7, a.atJtCj, a.k7wcnx, h1, h2, h3')
         if not title_elem:
             title_elem = card.select_one('a[title]')
+        if not title_elem:
+            for a_el in card.select('a[href*="/p/"]'):
+                t_sub = a_el.get_text(strip=True)
+                if t_sub and len(t_sub) >= 4:
+                    title_elem = a_el
+                    break
         if not title_elem:
             return None
 
@@ -34,18 +40,31 @@ def parse_flipkart_card(card: bs4.element.Tag) -> Optional[Dict[str, Any]]:
             title = f"{brand} {title}"
 
         # Price
-        price_elem = card.select_one('div.Nx9bqj, div._30jeq3, div.hl05eU, div.hZ3P6w')
-        if not price_elem:
-            return None
-        price_str = price_elem.get_text(strip=True)
-        cleaned_p = re.sub(r'[^\d.]', '', price_str)
-        try:
-            price_num = int(float(cleaned_p))
-        except (ValueError, TypeError):
+        price_elem = card.select_one('div.v1zwn20, div[class*="v1zwn20"], div.Nx9bqj, div[class*="Nx9bqj"], div._30jeq3, div.hl05eU, div.hZ3P6w, div._25b18c')
+        price_num = 0
+        if price_elem:
+            cleaned_p = re.sub(r'[^\d.]', '', price_elem.get_text(strip=True))
+            try:
+                price_num = int(float(cleaned_p))
+            except (ValueError, TypeError):
+                price_num = 0
+
+        if price_num <= 0:
+            for el in card.find_all(string=re.compile(r'[₹Rs]')):
+                m = re.search(r'[₹Rs\.]{1,3}\s*([\d,]+)', str(el).strip())
+                if m:
+                    try:
+                        val = int(m.group(1).replace(',', ''))
+                        if 10 <= val <= 2000000:
+                            price_num = val
+                            break
+                    except Exception:
+                        pass
+        if price_num <= 0:
             return None
 
         # MRP
-        mrp_elem = card.select_one('div.yRaY8j, div._3I9_wc, div.y739f8')
+        mrp_elem = card.select_one('div.v1zwn29, div[class*="v1zwn29"], div.yRaY8j, div._3I9_wc, div.y739f8, div.kRYCnD')
         mrp_str = mrp_elem.get_text(strip=True) if mrp_elem else None
         mrp_num = None
         if mrp_str:
@@ -56,7 +75,7 @@ def parse_flipkart_card(card: bs4.element.Tag) -> Optional[Dict[str, Any]]:
                 pass
 
         # Discount
-        disc_elem = card.select_one('div.UkUFwK span, div._3Ay6Sb span, div.UkUFwK')
+        disc_elem = card.select_one('div.UkUFwK span, div._3Ay6Sb span, div.UkUFwK, div.HQe8jr')
         discount = 0
         if disc_elem:
             d_match = re.search(r'(\d+)%', disc_elem.get_text())

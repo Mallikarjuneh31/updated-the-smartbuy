@@ -85,7 +85,7 @@ def init_db(app=None):
         collections = [
             "users", "search_history", "selected_products",
             "feedback", "admin_inbox", "search_queries", "inbox_messages",
-            "signup_otp", "otp_codes"
+            "signup_otp", "otp_codes", "price_alerts"
         ]
         existing = db.list_collection_names()
         for col in collections:
@@ -104,6 +104,9 @@ def init_db(app=None):
         db.signup_otp.create_index([("email", ASCENDING)], unique=True)
         db.otp_codes.create_index([("created_at", ASCENDING)], expireAfterSeconds=600)
         db.otp_codes.create_index([("identifier", ASCENDING), ("channel", ASCENDING)], unique=True)
+        db.price_alerts.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
+        db.price_alerts.create_index([("email", ASCENDING), ("created_at", DESCENDING)])
+        db.price_alerts.create_index([("status", ASCENDING)])
 
 
         # Ensure default administrator account exists
@@ -2049,7 +2052,7 @@ def verify_otp_code(identifier: str, code: str, channel: str = "email", purpose:
         if current_attempts >= max_attempts:
             db.otp_verifications.delete_one({"_id": rec["_id"]})
             db.otp_codes.delete_one({"identifier": clean_id})
-            return False, "Maximum OTP attempts reached. Please request a new OTP."
+            return False, "Maximum OTP attempts exceeded. Please request a new OTP."
 
         # 3. Validate Hash / Code
         stored_hash = rec.get("otp_hash")
@@ -2062,11 +2065,11 @@ def verify_otp_code(identifier: str, code: str, channel: str = "email", purpose:
             if new_attempts >= max_attempts:
                 db.otp_verifications.delete_one({"_id": rec["_id"]})
                 db.otp_codes.delete_one({"identifier": clean_id})
-                return False, "Maximum OTP attempts reached. Please request a new OTP."
+                return False, "Maximum OTP attempts exceeded. Please request a new OTP."
             else:
                 db.otp_verifications.update_one({"_id": rec["_id"]}, {"$set": {"attempts": new_attempts}})
                 db.otp_codes.update_one({"identifier": clean_id}, {"$set": {"attempts": new_attempts}})
-                return False, "Invalid OTP. Please try again."
+                return False, "Invalid OTP"
 
         # 4. Verified Successfully
         db.otp_verifications.update_one(
@@ -2131,6 +2134,394 @@ def mark_user_verified(user_id_or_email: str, channel: str = "email") -> bool:
         return res.modified_count > 0 or res.matched_count > 0
     except Exception as e:
         logger.error(f"Error marking user verified for {user_id_or_email}: {e}")
+        return False
+
+
+# ════════════════════ PRICE ALERTS SYSTEM ════════════════════
+
+def _parse_numeric_price(val: Any) -> Optional[int]:
+    """Helper to convert string/int/float price to clean integer."""
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return int(val)
+    s = str(val).strip()
+    if s.startswith('-'):
+        return -1
+    s = re.sub(r'\.\d{2}$', '', s)
+    digits = re.sub(r'[^\d]', '', s)
+    return int(digits) if digits else None
+
+
+def create_price_alert(
+    user_id: Optional[str],
+    email: str,
+    product_name: str,
+    product_url: str,
+    platform: str,
+    current_price: Any,
+    target_price: Any,
+    product_image: str = ""
+) -> tuple[Optional[str], int, str]:
+    """
+    Create a new price alert record in smartbuy_db.price_alerts.
+    Validates input fields, price values, and email.
+    Returns (alert_id, status_code, message).
+    """
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return None, 500, "Database connection is unavailable."
+
+    if not email or not isinstance(email, str) or not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email.strip()):
+        return None, 400, "A valid email address is required for price drop notifications."
+
+    if not product_name or not str(product_name).strip():
+        return None, 400, "Product name is required."
+
+    if not product_url or not str(product_url).strip():
+        return None, 400, "Product URL is required."
+
+    if not platform or not str(platform).strip():
+        return None, 400, "Shopping platform is required."
+
+    target_num = _parse_numeric_price(target_price)
+    if target_num is None or target_num <= 0:
+        return None, 400, "Target price must be a valid positive number greater than ₹0."
+
+    current_num = _parse_numeric_price(current_price)
+    if current_num is None or current_num <= 0:
+        current_num = target_num
+
+    clean_email = email.strip().lower()
+    clean_pname = str(product_name).strip()
+    clean_url = str(product_url).strip()
+    clean_platform = str(platform).strip().lower()
+    clean_img = str(product_image).strip() if product_image else ""
+    now = datetime.now(timezone.utc)
+
+    alert_doc = {
+        "user_id": str(user_id) if user_id else None,
+        "email": clean_email,
+        "product_name": clean_pname,
+        "product_url": clean_url,
+        "platform": clean_platform,
+        "current_price": current_num,
+        "target_price": target_num,
+        "status": "active",
+        "alert_status": "active",
+        "last_checked_price": current_num,
+        "alert_sent": False,
+        "alert_sent_status": "pending",
+        "product_image": clean_img,
+        "created_at": now,
+        "updated_at": now,
+        "last_checked_at": now,
+    }
+
+    try:
+        res = db.price_alerts.insert_one(alert_doc)
+        alert_id = str(res.inserted_id)
+        logger.info(f"[PriceAlert] Created alert {alert_id} for '{clean_pname}' ({clean_platform}) by {clean_email}")
+        return alert_id, 201, "Price alert created successfully!"
+    except Exception as e:
+        logger.error(f"[PriceAlert] Failed to insert price alert: {e}")
+        return None, 500, f"Failed to save price alert: {str(e)}"
+
+
+def get_price_alert_by_id(alert_id: str) -> Optional[dict]:
+    """Retrieve a single price alert by MongoDB ID."""
+    global db
+    if db is None:
+        init_db()
+    if db is None or not alert_id:
+        return None
+    oid = to_object_id(alert_id)
+    if not oid:
+        return None
+    try:
+        doc = db.price_alerts.find_one({"_id": oid})
+        return format_doc(doc) if doc else None
+    except Exception as e:
+        logger.error(f"[PriceAlert] Error fetching alert {alert_id}: {e}")
+        return None
+
+
+def get_user_price_alerts(
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    include_deleted: bool = False
+) -> list[dict]:
+    """
+    Retrieve all price alerts belonging to a specific user (by user_id or email).
+    Enriches documents with formatted prices, savings, and UI helper flags.
+    """
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return []
+
+    query = {}
+    if not include_deleted:
+        query["status"] = {"$ne": "deleted"}
+
+    if status_filter and status_filter.lower() != "all":
+        query["status"] = status_filter.lower()
+
+    user_clauses = []
+    if user_id:
+        user_clauses.append({"user_id": str(user_id)})
+    if email:
+        user_clauses.append({"email": email.strip().lower()})
+
+    if user_clauses:
+        if len(user_clauses) == 1:
+            query.update(user_clauses[0])
+        else:
+            query["$or"] = user_clauses
+    else:
+        # If no user identifier provided, return empty for safety
+        return []
+
+    try:
+        cursor = db.price_alerts.find(query).sort("created_at", DESCENDING)
+        alerts = []
+        for raw in cursor:
+            doc = format_doc(raw)
+            c_price = doc.get("current_price") or 0
+            t_price = doc.get("target_price") or 0
+            l_price = doc.get("last_checked_price") if doc.get("last_checked_price") is not None else c_price
+            diff = c_price - t_price
+
+            doc["price_difference"] = diff
+            doc["savings"] = max(0, diff)
+            doc["formatted_current_price"] = f"₹{c_price:,}" if c_price else "—"
+            doc["formatted_target_price"] = f"₹{t_price:,}" if t_price else "—"
+            doc["formatted_last_checked_price"] = f"₹{l_price:,}" if l_price else "—"
+            doc["is_active"] = doc.get("status") == "active"
+            doc["is_paused"] = doc.get("status") == "paused"
+            doc["is_triggered"] = doc.get("status") == "triggered"
+            alerts.append(doc)
+        return alerts
+    except Exception as e:
+        logger.error(f"[PriceAlert] Error listing alerts for user {user_id}/{email}: {e}")
+        return []
+
+
+def get_active_price_alerts() -> list[dict]:
+    """
+    Retrieve all active price alerts pending notification for the scheduled background checker.
+    Excludes paused, triggered, and deleted alerts.
+    """
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return []
+    try:
+        cursor = db.price_alerts.find({
+            "status": "active",
+            "alert_sent": {"$ne": True}
+        }).sort("last_checked_at", ASCENDING)
+        return [format_doc(doc) for doc in cursor]
+    except Exception as e:
+        logger.error(f"[PriceAlert] Error fetching active alerts: {e}")
+        return []
+
+
+def _check_alert_ownership(doc: dict, user_id: Optional[str] = None, email: Optional[str] = None) -> bool:
+    """Helper to verify if request is authorized to modify this alert."""
+    if not doc:
+        return False
+    # If no credentials provided, deny
+    if not user_id and not email:
+        return False
+    if user_id and str(doc.get("user_id") or "") == str(user_id):
+        return True
+    if email and str(doc.get("email") or "").lower() == str(email).lower():
+        return True
+    return False
+
+
+def pause_price_alert(alert_id: str, user_id: Optional[str] = None, email: Optional[str] = None) -> tuple[bool, int, str]:
+    """Pause an active price alert so it will not be checked."""
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return False, 500, "Database unavailable."
+    oid = to_object_id(alert_id)
+    if not oid:
+        return False, 400, "Invalid alert ID format."
+
+    doc = db.price_alerts.find_one({"_id": oid})
+    if not doc:
+        return False, 404, "Price alert not found."
+
+    if not _check_alert_ownership(doc, user_id, email):
+        return False, 403, "You do not have permission to modify this price alert."
+
+    now = datetime.now(timezone.utc)
+    try:
+        db.price_alerts.update_one(
+            {"_id": oid},
+            {"$set": {"status": "paused", "alert_status": "paused", "updated_at": now}}
+        )
+        return True, 200, "Price alert paused successfully."
+    except Exception as e:
+        logger.error(f"[PriceAlert] Pause error for {alert_id}: {e}")
+        return False, 500, f"Failed to pause alert: {str(e)}"
+
+
+def resume_price_alert(alert_id: str, user_id: Optional[str] = None, email: Optional[str] = None) -> tuple[bool, int, str]:
+    """Resume a paused price alert to active state."""
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return False, 500, "Database unavailable."
+    oid = to_object_id(alert_id)
+    if not oid:
+        return False, 400, "Invalid alert ID format."
+
+    doc = db.price_alerts.find_one({"_id": oid})
+    if not doc:
+        return False, 404, "Price alert not found."
+
+    if not _check_alert_ownership(doc, user_id, email):
+        return False, 403, "You do not have permission to modify this price alert."
+
+    now = datetime.now(timezone.utc)
+    try:
+        db.price_alerts.update_one(
+            {"_id": oid},
+            {"$set": {"status": "active", "alert_status": "active", "updated_at": now}}
+        )
+        return True, 200, "Price alert resumed successfully."
+    except Exception as e:
+        logger.error(f"[PriceAlert] Resume error for {alert_id}: {e}")
+        return False, 500, f"Failed to resume alert: {str(e)}"
+
+
+def reactivate_price_alert(alert_id: str, user_id: Optional[str] = None, email: Optional[str] = None) -> tuple[bool, int, str]:
+    """
+    Reactivate a triggered or paused price alert.
+    Resets alert status to active, clears alert_sent flag, and enables live monitoring again.
+    """
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return False, 500, "Database unavailable."
+    oid = to_object_id(alert_id)
+    if not oid:
+        return False, 400, "Invalid alert ID format."
+
+    doc = db.price_alerts.find_one({"_id": oid})
+    if not doc:
+        return False, 404, "Price alert not found."
+
+    if not _check_alert_ownership(doc, user_id, email):
+        return False, 403, "You do not have permission to modify this price alert."
+
+    now = datetime.now(timezone.utc)
+    try:
+        db.price_alerts.update_one(
+            {"_id": oid},
+            {"$set": {
+                "status": "active",
+                "alert_status": "active",
+                "alert_sent": False,
+                "alert_sent_status": "pending",
+                "updated_at": now
+            }}
+        )
+        return True, 200, "Price alert reactivated successfully. We will monitor it again!"
+    except Exception as e:
+        logger.error(f"[PriceAlert] Reactivate error for {alert_id}: {e}")
+        return False, 500, f"Failed to reactivate alert: {str(e)}"
+
+
+def delete_price_alert(alert_id: str, user_id: Optional[str] = None, email: Optional[str] = None) -> tuple[bool, int, str]:
+    """Safely delete a price alert from MongoDB."""
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return False, 500, "Database unavailable."
+    oid = to_object_id(alert_id)
+    if not oid:
+        return False, 400, "Invalid alert ID format."
+
+    doc = db.price_alerts.find_one({"_id": oid})
+    if not doc:
+        return False, 404, "Price alert not found."
+
+    if not _check_alert_ownership(doc, user_id, email):
+        return False, 403, "You do not have permission to delete this price alert."
+
+    now = datetime.now(timezone.utc)
+    try:
+        # Safely mark status as deleted and also clean up if desired
+        db.price_alerts.update_one(
+            {"_id": oid},
+            {"$set": {"status": "deleted", "alert_status": "deleted", "updated_at": now}}
+        )
+        return True, 200, "Price alert deleted successfully."
+    except Exception as e:
+        logger.error(f"[PriceAlert] Delete error for {alert_id}: {e}")
+        return False, 500, f"Failed to delete alert: {str(e)}"
+
+
+def update_price_alert_checked(alert_id: str, latest_price: Optional[int] = None) -> bool:
+    """Update last checked timestamp and optionally latest observed price."""
+    if db is None or not alert_id:
+        return False
+    oid = to_object_id(alert_id)
+    if not oid:
+        return False
+    now = datetime.now(timezone.utc)
+    update_data = {"last_checked_at": now}
+    if latest_price is not None and latest_price > 0:
+        update_data["last_checked_price"] = latest_price
+    try:
+        db.price_alerts.update_one({"_id": oid}, {"$set": update_data})
+        return True
+    except Exception as e:
+        logger.error(f"[PriceAlert] Update checked error: {e}")
+        return False
+
+
+def mark_price_alert_triggered(alert_id: str, latest_price: int, alert_sent: bool = True) -> bool:
+    """
+    Mark alert as triggered and notification sent.
+    Prevents duplicate alerts from being sent.
+    """
+    if db is None or not alert_id:
+        return False
+    oid = to_object_id(alert_id)
+    if not oid:
+        return False
+    now = datetime.now(timezone.utc)
+    update_data = {
+        "status": "triggered",
+        "alert_status": "triggered",
+        "alert_sent": alert_sent,
+        "alert_sent_status": "sent" if alert_sent else "pending",
+        "last_checked_price": latest_price,
+        "last_checked_at": now,
+        "triggered_at": now,
+        "updated_at": now,
+    }
+    try:
+        db.price_alerts.update_one({"_id": oid}, {"$set": update_data})
+        logger.info(f"[PriceAlert] Alert {alert_id} marked as TRIGGERED at price ₹{latest_price:,}")
+        return True
+    except Exception as e:
+        logger.error(f"[PriceAlert] Mark triggered error: {e}")
         return False
 
 

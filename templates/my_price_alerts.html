@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Price Alerts — SmartBuy Multi-Platform Price Comparison</title>
+    <meta name="description" content="Manage and track your active price drop alerts for Amazon, Flipkart, and Meesho on SmartBuy.">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .page-card {
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 24px;
+            backdrop-filter: blur(14px);
+        }
+        body.dark-mode .page-card {
+            background: rgba(30, 41, 59, 0.95) !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            color: #f8fafc !important;
+        }
+
+        .alert-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            transition: all 0.25s ease;
+        }
+        .alert-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(16, 185, 129, 0.1);
+            border-color: #10b981;
+        }
+        body.dark-mode .alert-card {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f1f5f9 !important;
+        }
+
+        .alert-card.status-triggered {
+            border-left: 5px solid #10b981 !important;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(255, 255, 255, 1) 100%);
+        }
+        body.dark-mode .alert-card.status-triggered {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, #1e293b 100%) !important;
+        }
+        .alert-card.status-paused {
+            border-left: 5px solid #f59e0b !important;
+            opacity: 0.88;
+        }
+        .alert-card.status-active {
+            border-left: 5px solid #06b6d4 !important;
+        }
+
+        .kpi-stat-box {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s;
+        }
+        .kpi-stat-box:hover {
+            transform: translateY(-2px);
+        }
+        body.dark-mode .kpi-stat-box {
+            background: #1e293b;
+            border-color: #334155;
+            color: #f1f5f9;
+        }
+
+        .platform-pill-amazon {
+            background: #232f3e;
+            color: #ff9900;
+        }
+        .platform-pill-flipkart {
+            background: #2874f0;
+            color: #ffffff;
+        }
+        .platform-pill-meesho {
+            background: #9c27b0;
+            color: #ffffff;
+        }
+
+        .price-badge-target {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        body.dark-mode .price-badge-target {
+            background: #334155;
+            color: #cbd5e1;
+            border-color: #475569;
+        }
+
+        .filter-pill-btn {
+            border-radius: 30px;
+            padding: 6px 18px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            background: #ffffff;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-pill-btn:hover, .filter-pill-btn.active {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #10b981;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        }
+        body.dark-mode .filter-pill-btn {
+            background: #1e293b;
+            border-color: #334155;
+            color: #94a3b8;
+        }
+        body.dark-mode .filter-pill-btn.active {
+            background: #10b981;
+            color: #ffffff;
+            border-color: #10b981;
+        }
+    </style>
+</head>
+<body class="premium-bg">
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-glass sticky-top shadow-sm py-3">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand d-flex align-items-center text-dark me-4" href="/" title="Smart-Buy Price Comparison">
+            <span class="fs-4 fw-bold">Smart<span style="color:var(--secondary)">-Buy</span></span>
+            <i class="fas fa-bolt text-primary ms-1"></i>
+        </a>
+        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarContent" aria-controls="navbarContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-lg-center gap-1">
+                <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="/"><i class="fas fa-home me-1 text-primary"></i>Home</a></li>
+                <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="/search"><i class="fas fa-search me-1 text-success"></i>Search Products</a></li>
+                <li class="nav-item"><a class="nav-link px-3 fw-semibold active text-success" href="/my-price-alerts"><i class="fas fa-bell me-1 text-success"></i>Price Alerts</a></li>
+                <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="/my-searches"><i class="fas fa-history me-1 text-info"></i>My Searches</a></li>
+                <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="/inbox"><i class="fas fa-inbox me-1 text-primary"></i>Inbox {% if unread_inbox_count > 0 %}<span class="badge bg-danger rounded-pill ms-1">{{ unread_inbox_count }}</span>{% endif %}</a></li>
+                <li class="nav-item"><a class="nav-link px-3 fw-semibold" href="/profile"><i class="fas fa-user-circle me-1 text-primary"></i>Profile</a></li>
+            </ul>
+
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-2">
+                <li class="nav-item">
+                    <button class="btn btn-outline-secondary btn-sm rounded-circle p-2" id="themeToggleBtn" onclick="toggleDarkMode()" title="Toggle Dark Mode" style="width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                    </button>
+                </li>
+                {% if current_user %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle fw-bold btn btn-outline-primary rounded-pill px-3 py-1 text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle me-1 text-primary"></i>{{ current_user.name }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end rounded-4 border-0 shadow-lg p-2">
+                        <li><a class="dropdown-item rounded-3 py-2" href="/profile"><i class="fas fa-id-card me-2 text-primary"></i>Profile</a></li>
+                        <li><a class="dropdown-item rounded-3 py-2 active" href="/my-price-alerts"><i class="fas fa-bell me-2 text-success"></i>My Price Alerts</a></li>
+                        <li><a class="dropdown-item rounded-3 py-2" href="/my-searches"><i class="fas fa-history me-2 text-info"></i>My Searches</a></li>
+                        <li><a class="dropdown-item rounded-3 py-2" href="/my-feedback"><i class="fas fa-comment-alt me-2 text-warning"></i>My Feedback</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item rounded-3 py-2 text-danger fw-semibold" href="/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Page Card Container -->
+    <div class="page-card p-4 p-md-5 shadow-lg">
+
+        <!-- Title & Action Bar -->
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 pb-3 border-bottom">
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill fw-bold text-uppercase" style="font-size:0.75rem;">
+                        <i class="fas fa-bell me-1"></i>Real-Time Price Tracker
+                    </span>
+                </div>
+                <h2 class="fw-extrabold text-dark mt-2 mb-1 d-flex align-items-center gap-2">
+                    <i class="fas fa-bell text-success"></i> My Price Alerts
+                </h2>
+                <p class="text-muted small mb-0">
+                    Live price monitoring across <strong>Amazon India</strong>, <strong>Flipkart</strong>, and <strong>Meesho</strong>. We email you immediately when target prices are reached.
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-outline-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1.5 shadow-xs" id="btnCheckAllNow" onclick="triggerCheckAllAlerts()">
+                    <i class="fas fa-sync-alt" id="iconCheckAll"></i>
+                    <span>Check Prices Now</span>
+                </button>
+                <a href="/search" class="btn btn-primary rounded-pill px-4 py-2 fw-bold d-flex align-items-center gap-1.5 shadow-sm">
+                    <i class="fas fa-plus"></i>
+                    <span>Set New Alert</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI Metrics Grid -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="kpi-stat-box">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-3 d-flex align-items-center justify-content-center" style="width:48px; height:48px;">
+                        <i class="fas fa-tags fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-dark">{{ total_alerts }}</div>
+                        <div class="text-muted small">Total Alerts</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="kpi-stat-box">
+                    <div class="rounded-circle bg-success-subtle text-success p-3 d-flex align-items-center justify-content-center" style="width:48px; height:48px;">
+                        <i class="fas fa-circle-notch fa-spin fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-success">{{ active_alerts }}</div>
+                        <div class="text-muted small">Actively Monitored</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="kpi-stat-box">
+                    <div class="rounded-circle bg-warning-subtle text-warning-emphasis p-3 d-flex align-items-center justify-content-center" style="width:48px; height:48px;">
+                        <i class="fas fa-trophy fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-warning-emphasis">{{ triggered_alerts }}</div>
+                        <div class="text-muted small">Target Reached 🎉</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="kpi-stat-box">
+                    <div class="rounded-circle bg-secondary-subtle text-secondary p-3 d-flex align-items-center justify-content-center" style="width:48px; height:48px;">
+                        <i class="fas fa-pause fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-secondary">{{ paused_alerts }}</div>
+                        <div class="text-muted small">Paused Alerts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 pb-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="filter-pill-btn active" onclick="filterAlerts('all', this)">
+                    All Alerts ({{ total_alerts }})
+                </button>
+                <button class="filter-pill-btn" onclick="filterAlerts('active', this)">
+                    <i class="fas fa-circle-notch text-success me-1"></i>Active ({{ active_alerts }})
+                </button>
+                <button class="filter-pill-btn" onclick="filterAlerts('triggered', this)">
+                    <i class="fas fa-trophy text-warning me-1"></i>Triggered ({{ triggered_alerts }})
+                </button>
+                <button class="filter-pill-btn" onclick="filterAlerts('paused', this)">
+                    <i class="fas fa-pause-circle text-secondary me-1"></i>Paused ({{ paused_alerts }})
+                </button>
+            </div>
+            <div class="text-muted small">
+                <i class="fas fa-shield-alt text-success me-1"></i>Scraper isolation enabled &bull; No fake prices
+            </div>
+        </div>
+
+        <!-- Alerts List -->
+        {% if alerts %}
+        <div class="row g-3" id="alertsGrid">
+            {% for alert in alerts %}
+            {% set a_status = alert.status or alert.alert_status or 'active' %}
+            <div class="col-12 alert-item-col" data-status="{{ a_status }}" id="alert-card-{{ alert.id }}">
+                <div class="alert-card p-3 p-md-4 shadow-sm status-{{ a_status }}">
+                    <div class="row align-items-center g-3">
+
+                        <!-- Product Thumbnail -->
+                        <div class="col-auto text-center">
+                            {% if alert.product_image %}
+                            <img src="{{ alert.product_image }}" alt="{{ alert.product_name }}"
+                                 style="width: 85px; height: 85px; object-fit: contain; border-radius: 12px; background: #fff; padding: 4px; border: 1px solid #e2e8f0;"
+                                 referrerpolicy="no-referrer"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            {% endif %}
+                            <div class="rounded-3 bg-light text-muted d-flex align-items-center justify-content-center border"
+                                 style="width: 85px; height: 85px; {% if alert.product_image %}display:none;{% endif %}">
+                                <i class="fas fa-box fa-2x text-secondary"></i>
+                            </div>
+                        </div>
+
+                        <!-- Product Details -->
+                        <div class="col-md">
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1.5">
+                                <!-- Platform Pill -->
+                                {% set plat_l = (alert.platform or '')|lower %}
+                                <span class="badge rounded-pill px-2.5 py-1 text-uppercase fw-bold {% if 'amazon' in plat_l %}platform-pill-amazon{% elif 'flipkart' in plat_l %}platform-pill-flipkart{% else %}platform-pill-meesho{% endif %}" style="font-size:0.72rem;">
+                                    <i class="fas fa-store me-1"></i>{{ alert.platform|capitalize }}
+                                </span>
+
+                                <!-- Status Badge -->
+                                {% if a_status == 'active' %}
+                                <span class="badge bg-success-subtle text-success border border-success px-2.5 py-1 rounded-pill" style="font-size:0.72rem;">
+                                    <i class="fas fa-circle-notch fa-spin me-1"></i>Monitoring Live
+                                </span>
+                                {% elif a_status == 'triggered' %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-2.5 py-1 rounded-pill fw-bold" style="font-size:0.72rem;">
+                                    <i class="fas fa-check-circle text-success me-1"></i>Target Reached &bull; Email Sent 🎉
+                                </span>
+                                {% elif a_status == 'paused' %}
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary px-2.5 py-1 rounded-pill" style="font-size:0.72rem;">
+                                    <i class="fas fa-pause-circle me-1"></i>Monitoring Paused
+                                </span>
+                                {% else %}
+                                <span class="badge bg-light text-muted border px-2.5 py-1 rounded-pill" style="font-size:0.72rem;">
+                                    {{ a_status|capitalize }}
+                                </span>
+                                {% endif %}
+
+                                <span class="text-muted small">
+                                    <i class="fas fa-envelope me-1 text-secondary"></i>{{ alert.email }}
+                                </span>
+                            </div>
+
+                            <!-- Title -->
+                            <h5 class="fw-bold mb-1 text-dark" style="font-size: 1.05rem;">
+                                <a href="{{ alert.product_url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-dark hover-primary" title="{{ alert.product_name }}">
+                                    {{ alert.product_name }}
+                                    <i class="fas fa-external-link-alt ms-1 text-muted small" style="font-size:0.75rem;"></i>
+                                </a>
+                            </h5>
+
+                            <!-- Price Comparison Row -->
+                            <div class="d-flex align-items-baseline gap-3 flex-wrap mt-2">
+                                <div>
+                                    <span class="text-muted small d-block">Target Price</span>
+                                    <span class="fw-bold fs-5 text-dark">{{ alert.formatted_target_price }}</span>
+                                </div>
+                                <div class="border-start ps-3">
+                                    <span class="text-muted small d-block">Initial Price</span>
+                                    <span class="text-muted fs-6 text-decoration-line-through">{{ alert.formatted_current_price }}</span>
+                                </div>
+                                <div class="border-start ps-3">
+                                    <span class="text-muted small d-block">Latest Checked Price</span>
+                                    <span class="fw-extrabold fs-5 {% if alert.last_checked_price and alert.target_price and alert.last_checked_price <= alert.target_price %}text-success{% else %}text-primary{% endif %}">
+                                        {{ alert.formatted_last_checked_price }}
+                                    </span>
+                                </div>
+
+                                <!-- Savings or Delta -->
+                                {% if a_status == 'triggered' %}
+                                <div class="border-start ps-3">
+                                    <span class="badge bg-success text-white px-2.5 py-1.5 rounded-pill fw-bold">
+                                        <i class="fas fa-piggy-bank me-1"></i>Saved {{ alert.formatted_target_price }} Deal!
+                                    </span>
+                                </div>
+                                {% elif alert.price_difference and alert.price_difference > 0 %}
+                                <div class="border-start ps-3">
+                                    <span class="text-muted small d-block">Target Drop</span>
+                                    <span class="badge bg-info-subtle text-info-emphasis border px-2 py-1 rounded-pill small">
+                                        ₹{{ "{:,}".format(alert.price_difference) }} to drop
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Timestamps -->
+                            <div class="d-flex align-items-center gap-3 text-muted small mt-2 flex-wrap" style="font-size:0.75rem;">
+                                <span><i class="far fa-calendar-alt me-1"></i>Created: {{ alert.created_at[:10] if alert.created_at else '—' }}</span>
+                                {% if alert.last_checked_at %}
+                                <span><i class="far fa-clock me-1"></i>Last Checked: {{ alert.last_checked_at[:16] }} UTC</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="col-md-auto text-md-end">
+                            <div class="d-flex flex-column flex-sm-row flex-md-column gap-2 justify-content-end">
+
+                                {% if a_status == 'active' %}
+                                <button type="button" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-semibold"
+                                        onclick="handleAlertAction('{{ alert.id }}', 'pause')">
+                                    <i class="fas fa-pause me-1"></i>Pause
+                                </button>
+                                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold"
+                                        onclick="handleAlertCheck('{{ alert.id }}', this)">
+                                    <i class="fas fa-sync-alt me-1"></i>Check Now
+                                </button>
+
+                                {% elif a_status == 'paused' %}
+                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-xs text-white"
+                                        onclick="handleAlertAction('{{ alert.id }}', 'resume')">
+                                    <i class="fas fa-play me-1"></i>Resume
+                                </button>
+
+                                {% elif a_status == 'triggered' %}
+                                <a href="{{ alert.product_url }}" target="_blank" rel="noopener noreferrer"
+                                   class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-sm text-white">
+                                    <i class="fas fa-shopping-cart me-1"></i>Buy Now
+                                </a>
+                                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold"
+                                        onclick="handleAlertAction('{{ alert.id }}', 'reactivate')">
+                                    <i class="fas fa-redo me-1"></i>Reactivate
+                                </button>
+                                {% endif %}
+
+                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3"
+                                        onclick="confirmDeleteAlert('{{ alert.id }}', '{{ alert.product_name|replace('\'', '\\\'') }}')">
+                                    <i class="fas fa-trash-alt me-1"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-5">
+            <div class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center p-4 mb-3" style="width: 80px; height: 80px;">
+                <i class="fas fa-bell-slash fa-2x"></i>
+            </div>
+            <h4 class="fw-bold text-dark mb-1">No Price Alerts Set Yet</h4>
+            <p class="text-muted small mb-4" style="max-width: 480px; margin: 0 auto;">
+                You haven't set any price alerts yet. Compare prices across Amazon, Flipkart, and Meesho, click <strong>"🔔 Set Price Alert"</strong>, and we'll notify you as soon as prices drop!
+            </p>
+            <a href="/search" class="btn btn-success rounded-pill px-4 py-2.5 fw-bold shadow-sm">
+                <i class="fas fa-search me-1.5"></i>Search Products & Set Alert
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteAlertModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white py-3 px-4">
+                <h6 class="modal-title fw-bold mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Delete Price Alert
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="text-dark mb-2">Are you sure you want to delete the price alert for:</p>
+                <div class="fw-bold text-danger mb-3" id="deleteAlertProductName">Product</div>
+                <p class="text-muted small mb-0">You will no longer receive price drop emails for this product.</p>
+            </div>
+            <div class="modal-footer bg-light py-2.5 px-4 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" id="confirmDeleteBtn" onclick="executeDeleteAlert()">Delete Alert</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Feedback Container -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+    <div id="liveToast" class="toast align-items-center text-white border-0 rounded-4 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body fw-semibold" id="toastMessage">Action completed.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Filter alerts by status
+function filterAlerts(status, btn) {
+    document.querySelectorAll('.filter-pill-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const items = document.querySelectorAll('.alert-item-col');
+    items.forEach(card => {
+        const itemStatus = card.getAttribute('data-status');
+        if (status === 'all' || itemStatus === status) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function showToast(message, isSuccess = true) {
+    const toastEl = document.getElementById('liveToast');
+    const msgEl = document.getElementById('toastMessage');
+    toastEl.className = 'toast align-items-center text-white border-0 rounded-4 shadow-lg ' + (isSuccess ? 'bg-success' : 'bg-danger');
+    msgEl.innerHTML = message;
+    const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+    toast.show();
+}
+
+// Pause, Resume, Reactivate
+async function handleAlertAction(alertId, action) {
+    try {
+        const response = await fetch(`/price-alert/${alertId}/${action}`, {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast(`🎉 ${data.message || 'Updated alert successfully!'}`, true);
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            showToast(`⚠️ ${data.message || 'Action failed.'}`, false);
+        }
+    } catch (err) {
+        showToast(`❌ Network error: ${err.message}`, false);
+    }
+}
+
+// Check single alert live
+async function handleAlertCheck(alertId, btn) {
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Checking...';
+
+    try {
+        const response = await fetch(`/price-alert/${alertId}/check`, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' }
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            const r = data.result || {};
+            if (r.triggered) {
+                showToast(`🎉 Target reached! Live price is ₹${r.latest_price}. Notification email sent!`, true);
+            } else if (r.latest_price) {
+                showToast(`ℹ️ Checked live price: ₹${r.latest_price} (Target: ₹${r.target_price}). Keep tracking!`, true);
+            } else {
+                showToast(`⚠️ Scraper returned: ${r.error || 'Price temporarily unavailable'}. Alert kept active.`, false);
+            }
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            showToast(`⚠️ ${data.message || 'Check failed'}`, false);
+        }
+    } catch (err) {
+        showToast(`❌ Error: ${err.message}`, false);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// Batch Check All Alerts
+async function triggerCheckAllAlerts() {
+    const btn = document.getElementById('btnCheckAllNow');
+    const icon = document.getElementById('iconCheckAll');
+    btn.disabled = true;
+    icon.classList.add('fa-spin');
+
+    try {
+        const response = await fetch('/price-alerts/check-now', {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' }
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            const s = data.summary || {};
+            showToast(`✅ Price check finished! Checked ${s.checked || 0} active alerts (${s.triggered || 0} triggered).`, true);
+            setTimeout(() => window.location.reload(), 1200);
+        } else {
+            showToast('⚠️ Could not complete price check cycle.', false);
+        }
+    } catch (err) {
+        showToast(`❌ Check cycle error: ${err.message}`, false);
+    } finally {
+        btn.disabled = false;
+        icon.classList.remove('fa-spin');
+    }
+}
+
+// Delete alert handling
+let pendingDeleteAlertId = null;
+function confirmDeleteAlert(alertId, prodName) {
+    pendingDeleteAlertId = alertId;
+    document.getElementById('deleteAlertProductName').innerText = prodName;
+    const modal = new bootstrap.Modal(document.getElementById('deleteAlertModal'));
+    modal.show();
+}
+
+async function executeDeleteAlert() {
+    if (!pendingDeleteAlertId) return;
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    btn.innerText = 'Deleting...';
+
+    try {
+        const response = await fetch(`/price-alert/${pendingDeleteAlertId}`, {
+            method: 'DELETE',
+            headers: { 'Accept': 'application/json' }
+        });
+        const data = await response.json();
+        if (response.ok && data.success) {
+            showToast('🗑️ Price alert deleted.', true);
+            const card = document.getElementById(`alert-card-${pendingDeleteAlertId}`);
+            if (card) card.remove();
+            const modalEl = document.getElementById('deleteAlertModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            showToast(`⚠️ ${data.message || 'Could not delete alert'}`, false);
+        }
+    } catch (err) {
+        showToast(`❌ Error: ${err.message}`, false);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = 'Delete Alert';
+    }
+}
+
+// Dark Mode Toggle Support
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('smartbuy_theme', isDark ? 'dark' : 'light');
+    const icon = document.getElementById('themeIcon');
+    if (icon) {
+        icon.className = isDark ? 'fas fa-sun text-warning' : 'fas fa-moon';
+    }
+}
+
+(function() {
+    const saved = localStorage.getItem('smartbuy_theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.body.classList.add('dark-mode');
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = 'fas fa-sun text-warning';
+    }
+})();
+</script>
+</body>
+</html>

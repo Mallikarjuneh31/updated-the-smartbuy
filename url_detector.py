@@ -184,7 +184,9 @@ def validate_and_detect_url(raw_url: str) -> Dict[str, Any]:
             "error": "Please enter a product URL."
         }
 
-    url = raw_url.strip()
+    raw_clean = re.sub(r'[\s\\\'\"]+$', '', raw_url.strip())
+    raw_clean = re.sub(r'^[\s\\\'\"]+', '', raw_clean)
+    url = raw_clean
     if not is_valid_http_url(url):
         if url.startswith("www.") or re.match(r'^(?:dl\.)?(amazon|flipkart|meesho|amzn)\.', url, re.IGNORECASE):
             url = "https://" + url

@@ -372,6 +372,9 @@
                          Now points to /#product-specs which scrolls to the search form. -->
                     <a class="nav-link px-3 fw-semibold" href="/#product-specs"><i class="fas fa-search me-1 text-success"></i>Search Products</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3 fw-semibold" href="/my-price-alerts"><i class="fas fa-bell me-1 text-success"></i>Price Alerts</a>
+                </li>
                 {% if current_user %}
                 <li class="nav-item">
                     <a class="nav-link px-3 fw-semibold" href="/profile"><i class="fas fa-user-circle me-1 text-primary"></i>Profile</a>
@@ -398,6 +401,7 @@
                         <li><a class="dropdown-item rounded-3 py-2" href="/admin/users"><i class="fas fa-users me-2 text-info"></i>Users List</a></li>
                         {% else %}
                         <li><a class="dropdown-item rounded-3 py-2" href="/profile"><i class="fas fa-id-card me-2 text-primary"></i>Profile</a></li>
+                        <li><a class="dropdown-item rounded-3 py-2" href="/my-price-alerts"><i class="fas fa-bell me-2 text-success"></i>My Price Alerts</a></li>
                         <li><a class="dropdown-item rounded-3 py-2" href="/my-searches"><i class="fas fa-history me-2 text-info"></i>My Searches</a></li>
                         <li><a class="dropdown-item rounded-3 py-2" href="/my-feedback"><i class="fas fa-comment-alt me-2 text-warning"></i>My Feedback</a></li>
                         {% endif %}

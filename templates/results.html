@@ -336,6 +336,7 @@
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/"><i class="fas fa-home me-1 text-primary"></i>Home</a></li>
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/about"><i class="fas fa-info-circle me-1 text-secondary"></i>About</a></li>
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold active" href="/search"><i class="fas fa-search me-1 text-success"></i>Search Products</a></li>
+                <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/my-price-alerts"><i class="fas fa-bell me-1 text-success"></i>Price Alerts</a></li>
                 {% if current_user %}
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/profile"><i class="fas fa-user-circle me-1 text-primary"></i>Profile</a></li>
                 {% endif %}
@@ -362,6 +363,7 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end rounded-4 border-0 shadow-lg p-2">
                         <li><a class="dropdown-item rounded-3 py-2" href="/profile"><i class="fas fa-id-card me-2 text-primary"></i>Profile</a></li>
+                        <li><a class="dropdown-item rounded-3 py-2" href="/my-price-alerts"><i class="fas fa-bell me-2 text-success"></i>My Price Alerts</a></li>
                         <li><a class="dropdown-item rounded-3 py-2" href="/my-searches"><i class="fas fa-history me-2 text-info"></i>My Searches</a></li>
                         <li><a class="dropdown-item rounded-3 py-2" href="/my-feedback"><i class="fas fa-comment-alt me-2 text-warning"></i>My Feedback</a></li>
                         <li><hr class="dropdown-divider"></li>
@@ -448,7 +450,16 @@
                     </span>
                     <span class="badge bg-light text-muted border px-2 py-1 small">Scraped from URL</span>
                 </div>
-                <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-xs fw-semibold"
+                            onclick="openPriceAlertModal(this)"
+                            data-product-name="{{ source_product.title }}"
+                            data-product-image="{{ source_product.image_url or source_product.image }}"
+                            data-platform="{{ source_platform }}"
+                            data-current-price="{{ source_product.price }}"
+                            data-product-url="{{ source_product.product_url or searched_url }}">
+                        <i class="fas fa-bell me-1 text-warning"></i>Set Price Alert
+                    </button>
                     <a href="{{ source_product.product_url or searched_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm rounded-pill px-3">
                         <i class="fas fa-external-link-alt me-1"></i>Open Original URL
                     </a>
@@ -505,7 +516,17 @@
                 {% endif %}
                 <span class="text-muted small d-none d-lg-inline text-truncate" style="max-width: 320px;" title="{{ best.title }}">{{ best.title }}</span>
             </div>
-            <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button type="button"
+                        class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1 fw-bold shadow-xs bg-white text-dark"
+                        onclick="openPriceAlertModal(this)"
+                        data-product-name="{{ best.title or query }}"
+                        data-product-image="{{ best.image or '' }}"
+                        data-platform="{{ best.platform }}"
+                        data-current-price="{{ best.formatted_price or best.price }}"
+                        data-product-url="{{ best.link or best.product_url }}">
+                    <i class="fas fa-bell me-1 text-warning"></i>Set Price Alert
+                </button>
                 <a href="javascript:void(0)"
                    data-url="{{ best.link or best.product_url }}"
                    data-platform="{{ best.platform }}"
@@ -1464,6 +1485,18 @@
                                             data-points='{{ (item.quality_points or []) | tojson }}'>
                                         <i class="fas fa-balance-scale me-1.5"></i><span>Add to Compare</span>
                                     </button>
+
+                                    <!-- Set Price Alert Button -->
+                                    <button type="button"
+                                            class="btn btn-outline-success btn-sm w-100 mt-1.5 rounded-pill py-1.5 fw-semibold d-flex align-items-center justify-content-center btn-set-price-alert"
+                                            onclick="openPriceAlertModal(this)"
+                                            data-product-name="{{ item.title }}"
+                                            data-product-image="{{ item.image or item.image_url }}"
+                                            data-platform="{{ platform }}"
+                                            data-current-price="{{ item.price_formatted or item.price or item.price_num }}"
+                                            data-product-url="{{ item.link or item.product_url or item.url }}">
+                                        <i class="fas fa-bell me-1.5 text-warning"></i><span>🔔 Set Price Alert</span>
+                                    </button>
                                 </div>
                                 {% endfor %}
                                 {% else %}
@@ -2317,6 +2350,18 @@
                                     <i class="fas fa-balance-scale me-1.5"></i><span>Add to Compare</span>
                                 </button>
 
+                                <!-- Set Price Alert -->
+                                <button type="button"
+                                        class="btn btn-outline-success btn-sm w-100 mt-1.5 rounded-pill py-1.5 fw-semibold d-flex align-items-center justify-content-center btn-set-price-alert"
+                                        onclick="openPriceAlertModal(this)"
+                                        data-product-name="{{ p_info.title }}"
+                                        data-product-image="{{ p_info.image }}"
+                                        data-platform="{{ platform_name }}"
+                                        data-current-price="{{ p_info.price_formatted or p_info.price }}"
+                                        data-product-url="{{ p_info.link }}">
+                                    <i class="fas fa-bell me-1.5 text-warning"></i><span>🔔 Set Price Alert</span>
+                                </button>
+
                                 {% else %}
 
                                 <!-- Fallback State for missing platform result -->
@@ -2389,18 +2434,30 @@
                                 </span>
                             </div>
                             {% endif %}
-                            <a href="javascript:void(0)"
-                               data-url="{{ best_overall_deal.link }}"
-                               data-platform="{{ best_overall_deal.platform }}"
-                               data-product-name="{{ best_overall_deal.title }}"
-                               data-price="{{ best_overall_deal.price_formatted }}"
-                               data-rating="{{ best_overall_deal.rating }}"
-                               data-reviews="{{ best_overall_deal.reviews }}"
-                               data-image="{{ best_overall_deal.image }}"
-                               onclick="triggerBuyRedirect(this)"
-                               class="btn btn-success btn-lg rounded-pill px-4 py-2 fw-bold shadow-lg d-flex align-items-center gap-2">
-                                <i class="fas fa-shopping-cart"></i> Claim Best Deal Now
-                            </a>
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <button type="button"
+                                        class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-bold shadow-md d-flex align-items-center gap-2"
+                                        onclick="openPriceAlertModal(this)"
+                                        data-product-name="{{ best_overall_deal.title }}"
+                                        data-product-image="{{ best_overall_deal.image }}"
+                                        data-platform="{{ best_overall_deal.platform }}"
+                                        data-current-price="{{ best_overall_deal.price_formatted }}"
+                                        data-product-url="{{ best_overall_deal.link }}">
+                                    <i class="fas fa-bell text-warning"></i> Set Price Alert
+                                </button>
+                                <a href="javascript:void(0)"
+                                   data-url="{{ best_overall_deal.link }}"
+                                   data-platform="{{ best_overall_deal.platform }}"
+                                   data-product-name="{{ best_overall_deal.title }}"
+                                   data-price="{{ best_overall_deal.price_formatted }}"
+                                   data-rating="{{ best_overall_deal.rating }}"
+                                   data-reviews="{{ best_overall_deal.reviews }}"
+                                   data-image="{{ best_overall_deal.image }}"
+                                   onclick="triggerBuyRedirect(this)"
+                                   class="btn btn-success btn-lg rounded-pill px-4 py-2 fw-bold shadow-lg d-flex align-items-center gap-2">
+                                    <i class="fas fa-shopping-cart"></i> Claim Best Deal Now
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2741,6 +2798,356 @@ function updateThemeIcon(isDark) {
             </div>
         </div>
     </div>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         🔔 SMARTBUY PRICE ALERT MODAL DIALOG
+         ════════════════════════════════════════════════════════════════ -->
+    <div class="modal fade" id="priceAlertModal" tabindex="-1" aria-labelledby="priceAlertModalLabel" aria-hidden="true" style="z-index: 1070;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+                <!-- Modal Header -->
+                <div class="modal-header text-white py-3 px-4 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow-xs" style="width: 38px; height: 38px;">
+                            <i class="fas fa-bell fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="priceAlertModalLabel">Set Price Alert</h5>
+                            <small class="text-white-50" style="font-size: 0.76rem;">Instant email notification when price drops to your target</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body p-4 bg-light">
+                    <!-- Product Preview Mini Card -->
+                    <div class="p-3 bg-white rounded-3 border mb-3 shadow-xs">
+                        <div class="d-flex align-items-center gap-3">
+                            <img id="paModalImage" src="" alt="Product" style="width: 75px; height: 75px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; padding: 4px;" referrerpolicy="no-referrer" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\' fill=\'%2394a3b8\' viewBox=\'0 0 16 16\'><path d=\'M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z\'/><path d=\'M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z\'/></svg>';">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <span id="paModalPlatform" class="badge rounded-pill px-2.5 py-0.5 text-uppercase fw-bold mb-1" style="font-size:0.7rem;">Platform</span>
+                                <h6 id="paModalTitle" class="fw-bold text-dark mb-1 text-truncate" style="font-size:0.92rem;" title="">Product Name</h6>
+                                <div class="d-flex align-items-baseline gap-2">
+                                    <span class="small text-muted">Current Price:</span>
+                                    <span id="paModalCurrentPrice" class="fw-bold text-primary fs-6">₹0</span>
+                                </div>
+                                <a id="paModalUrlLink" href="#" target="_blank" rel="noopener noreferrer" class="small text-muted text-truncate d-block mt-0.5" style="max-width:280px; font-size:0.72rem;">View Product Link</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden inputs -->
+                    <input type="hidden" id="paModalProductName">
+                    <input type="hidden" id="paModalProductUrl">
+                    <input type="hidden" id="paModalPlatformInput">
+                    <input type="hidden" id="paModalCurrentPriceInput">
+                    <input type="hidden" id="paModalProductImage">
+
+                    <!-- Target Price Input Group -->
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label for="paModalTargetPrice" class="form-label fw-bold text-dark small mb-0">
+                                Target Price (₹) <span class="text-danger">*</span>
+                            </label>
+                            <span class="text-muted small" style="font-size:0.72rem;">Notify me if price &le; this</span>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 fw-bold text-success">₹</span>
+                            <input type="number" id="paModalTargetPrice" class="form-control border-start-0 ps-1" placeholder="e.g. 25000" min="1" step="1" required oninput="calculateSavingsPreview()">
+                        </div>
+
+                        <!-- Quick Discount Percentage Options (Presets + Custom % up to 100%) -->
+                        <div class="mt-2" id="paQuickButtonsWrapper">
+                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                <span class="text-muted small fw-semibold me-1" style="font-size:0.72rem;">Quick Target:</span>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="5" style="font-size:0.72rem;" onclick="setDiscountTarget(5)">-5%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="10" style="font-size:0.72rem;" onclick="setDiscountTarget(10)">-10%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="15" style="font-size:0.72rem;" onclick="setDiscountTarget(15)">-15%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="20" style="font-size:0.72rem;" onclick="setDiscountTarget(20)">-20%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="25" style="font-size:0.72rem;" onclick="setDiscountTarget(25)">-25%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="50" style="font-size:0.72rem;" onclick="setDiscountTarget(50)">-50%</button>
+
+                                <!-- Custom Optional Discount % Input (up to 100%) -->
+                                <div class="input-group input-group-sm ms-sm-auto mt-1 mt-sm-0" style="width: 148px;" title="Optional: enter any custom discount up to 100%">
+                                    <span class="input-group-text py-0 px-1.5 bg-light text-muted fw-bold" style="font-size:0.70rem;">-</span>
+                                    <input type="number"
+                                           id="paModalCustomPct"
+                                           class="form-control form-control-sm text-center py-0 px-1 fw-bold"
+                                           placeholder="Custom %"
+                                           min="1"
+                                           max="100"
+                                           step="any"
+                                           style="font-size:0.74rem; height:24px;"
+                                           oninput="onCustomDiscountInput(this.value)">
+                                    <span class="input-group-text py-0 px-1.5 bg-light text-muted fw-bold" style="font-size:0.70rem;">% off</span>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <div id="paModalDiffNote" class="small text-muted" style="font-size:0.75rem;"></div>
+                                <span class="text-muted" style="font-size:0.68rem; font-style:italic;">(Discount optional up to 100%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Input Group -->
+                    <div class="mb-3">
+                        <label for="paModalEmail" class="form-label fw-bold text-dark small mb-1">
+                            Notification Email Address <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-envelope"></i></span>
+                            <input type="email" id="paModalEmail" class="form-control border-start-0 ps-1" placeholder="name@example.com" value="{{ current_user.email if current_user else '' }}" required>
+                        </div>
+                        <div class="form-text text-muted" style="font-size:0.72rem;">
+                            <i class="fas fa-lock me-1 text-success"></i>We will only email you when this product drops to or below your target price.
+                        </div>
+                    </div>
+
+                    <!-- Feedback Alert Boxes -->
+                    <div id="paModalErrorAlert" class="alert alert-danger py-2 px-3 small d-none rounded-3" role="alert"></div>
+                    <div id="paModalSuccessAlert" class="alert alert-success py-3 px-3 d-none rounded-3" role="alert">
+                        <div class="fw-bold mb-1 d-flex align-items-center gap-1.5">
+                            <i class="fas fa-check-circle"></i> Price Alert Created!
+                        </div>
+                        <p class="mb-2 small" id="paSuccessMsgText"></p>
+                        <div class="d-flex gap-2">
+                            <a href="/my-price-alerts" class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold">View My Alerts &rarr;</a>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer bg-white py-2.5 px-4 d-flex justify-content-between" id="paModalFooter">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-xs" id="paModalSubmitBtn" onclick="submitPriceAlertForm()">
+                        <i class="fas fa-bell me-1.5"></i>Set Price Alert
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Open Modal and Populate Product Data
+    function openPriceAlertModal(btn) {
+        const productName = btn.getAttribute('data-product-name') || 'Product';
+        const productImage = btn.getAttribute('data-product-image') || '';
+        const platform = (btn.getAttribute('data-platform') || 'Amazon').trim();
+        const currentPriceRaw = btn.getAttribute('data-current-price') || '0';
+        const productUrl = btn.getAttribute('data-product-url') || '';
+
+        // Extract clean number
+        const numPrice = parseInt(String(currentPriceRaw).replace(/[^0-9]/g, '')) || 0;
+
+        // Reset feedback
+        document.getElementById('paModalErrorAlert').classList.add('d-none');
+        document.getElementById('paModalSuccessAlert').classList.add('d-none');
+        document.getElementById('paModalFooter').style.display = 'flex';
+        document.getElementById('paModalSubmitBtn').disabled = false;
+        document.getElementById('paModalSubmitBtn').innerHTML = '<i class="fas fa-bell me-1.5"></i>Set Price Alert';
+
+        // Populate Fields
+        document.getElementById('paModalProductName').value = productName;
+        document.getElementById('paModalProductUrl').value = productUrl;
+        document.getElementById('paModalPlatformInput').value = platform.toLowerCase();
+        document.getElementById('paModalCurrentPriceInput').value = numPrice;
+        document.getElementById('paModalProductImage').value = productImage;
+
+        document.getElementById('paModalTitle').innerText = productName;
+        document.getElementById('paModalTitle').setAttribute('title', productName);
+        document.getElementById('paModalImage').src = productImage || '';
+        document.getElementById('paModalCurrentPrice').innerText = numPrice > 0 ? `₹${numPrice.toLocaleString('en-IN')}` : currentPriceRaw;
+        document.getElementById('paModalUrlLink').href = productUrl;
+        document.getElementById('paModalUrlLink').innerText = productUrl || 'Marketplace URL';
+
+        // Platform pill styling
+        const platEl = document.getElementById('paModalPlatform');
+        platEl.innerText = platform;
+        const pl = platform.toLowerCase();
+        platEl.className = 'badge rounded-pill px-2.5 py-0.5 text-uppercase fw-bold mb-1 ' +
+            (pl.includes('amazon') ? 'bg-dark text-warning' : (pl.includes('flipkart') ? 'bg-primary text-white' : 'bg-danger text-white'));
+
+        // Default target price: 10% lower if current price is available, else blank
+        if (numPrice > 0) {
+            setDiscountTarget(10);
+        } else {
+            document.getElementById('paModalTargetPrice').value = '';
+            const customInput = document.getElementById('paModalCustomPct');
+            if (customInput) customInput.value = '';
+            updateActivePill(null);
+            calculateSavingsPreview();
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('priceAlertModal'));
+        modal.show();
+    }
+
+    function setDiscountTarget(pct) {
+        const cur = parseInt(document.getElementById('paModalCurrentPriceInput').value) || 0;
+        if (cur > 0) {
+            let target;
+            if (pct >= 100) {
+                target = 1; // 100% discount, minimum valid target price is ₹1
+            } else {
+                target = Math.max(1, Math.round(cur * (1 - pct / 100)));
+            }
+            document.getElementById('paModalTargetPrice').value = target;
+            const customInput = document.getElementById('paModalCustomPct');
+            if (customInput) customInput.value = pct;
+            updateActivePill(pct);
+            calculateSavingsPreview(false);
+        }
+    }
+
+    function onCustomDiscountInput(val) {
+        const cur = parseInt(document.getElementById('paModalCurrentPriceInput').value) || 0;
+        if (!cur) return;
+        if (val === '' || val === null) {
+            updateActivePill(null);
+            return;
+        }
+        let pct = parseFloat(val);
+        if (isNaN(pct)) {
+            updateActivePill(null);
+            return;
+        }
+        if (pct < 0) pct = 0;
+        if (pct > 100) {
+            pct = 100;
+            const customInput = document.getElementById('paModalCustomPct');
+            if (customInput) customInput.value = 100;
+        }
+
+        let target;
+        if (pct >= 100) {
+            target = 1; // 100% discount, minimum allowed price is ₹1
+        } else {
+            target = Math.max(1, Math.round(cur * (1 - pct / 100)));
+        }
+        document.getElementById('paModalTargetPrice').value = target;
+        updateActivePill(pct);
+        calculateSavingsPreview(false);
+    }
+
+    function updateActivePill(activePct) {
+        document.querySelectorAll('.pa-pct-pill').forEach(btn => {
+            const btnPct = parseFloat(btn.getAttribute('data-pct'));
+            if (activePct !== null && !isNaN(activePct) && Math.abs(btnPct - activePct) < 0.1) {
+                btn.classList.remove('btn-outline-secondary');
+                btn.classList.add('btn-success', 'text-white');
+            } else {
+                btn.classList.remove('btn-success', 'text-white');
+                btn.classList.add('btn-outline-secondary');
+            }
+        });
+    }
+
+    function calculateSavingsPreview(syncCustom = true) {
+        const cur = parseInt(document.getElementById('paModalCurrentPriceInput').value) || 0;
+        const target = parseInt(document.getElementById('paModalTargetPrice').value) || 0;
+        const noteEl = document.getElementById('paModalDiffNote');
+        const customInput = document.getElementById('paModalCustomPct');
+
+        if (cur > 0 && target > 0) {
+            const diff = cur - target;
+            if (diff > 0) {
+                const pct = ((diff / cur) * 100).toFixed(1);
+                const numPct = parseFloat(pct);
+                if (syncCustom && customInput) {
+                    customInput.value = numPct % 1 === 0 ? parseInt(pct) : pct;
+                }
+                updateActivePill(numPct);
+                noteEl.innerHTML = `<span class="text-success fw-bold"><i class="fas fa-arrow-down me-1"></i>You save ₹${diff.toLocaleString('en-IN')} (${pct}% off current price)</span>`;
+            } else if (diff === 0) {
+                if (syncCustom && customInput) customInput.value = '0';
+                updateActivePill(0);
+                noteEl.innerHTML = `<span class="text-warning fw-semibold">Target matches current price (0% off). Alert will trigger on next price check!</span>`;
+            } else {
+                if (syncCustom && customInput) customInput.value = '';
+                updateActivePill(null);
+                noteEl.innerHTML = `<span class="text-danger">Target is above current price (₹${(-diff).toLocaleString('en-IN')} higher). Alert will trigger immediately.</span>`;
+            }
+        } else {
+            noteEl.innerHTML = '';
+            if (syncCustom && customInput) customInput.value = '';
+            updateActivePill(null);
+        }
+    }
+
+    async function submitPriceAlertForm() {
+        const errEl = document.getElementById('paModalErrorAlert');
+        const succEl = document.getElementById('paModalSuccessAlert');
+        const submitBtn = document.getElementById('paModalSubmitBtn');
+
+        errEl.classList.add('d-none');
+        succEl.classList.add('d-none');
+
+        const productName = document.getElementById('paModalProductName').value;
+        const productUrl = document.getElementById('paModalProductUrl').value;
+        const platform = document.getElementById('paModalPlatformInput').value;
+        const currentPrice = parseInt(document.getElementById('paModalCurrentPriceInput').value) || 0;
+        const targetPrice = parseInt(document.getElementById('paModalTargetPrice').value) || 0;
+        const email = document.getElementById('paModalEmail').value.trim();
+        const productImage = document.getElementById('paModalProductImage').value;
+
+        if (!targetPrice || targetPrice <= 0) {
+            errEl.innerText = "Please enter a valid target price greater than ₹0.";
+            errEl.classList.remove('d-none');
+            document.getElementById('paModalTargetPrice').focus();
+            return;
+        }
+
+        if (!email || !email.includes('@') || !email.includes('.')) {
+            errEl.innerText = "Please enter a valid notification email address.";
+            errEl.classList.remove('d-none');
+            document.getElementById('paModalEmail').focus();
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1.5"></i>Saving Alert...';
+
+        try {
+            const response = await fetch('/price-alert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    product_name: productName,
+                    product_url: productUrl,
+                    platform: platform,
+                    current_price: currentPrice,
+                    target_price: targetPrice,
+                    email: email,
+                    product_image: productImage
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                document.getElementById('paSuccessMsgText').innerText =
+                    `We will continuously track "${productName}" on ${platform.toUpperCase()}. As soon as the live price reaches ₹${targetPrice.toLocaleString('en-IN')} or lower, we'll email you at ${email}.`;
+                succEl.classList.remove('d-none');
+                document.getElementById('paModalFooter').style.display = 'none';
+            } else {
+                errEl.innerText = data.message || "Failed to set price alert. Please try again.";
+                errEl.classList.remove('d-none');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-bell me-1.5"></i>Set Price Alert';
+            }
+        } catch (e) {
+            errEl.innerText = `Network error: ${e.message}`;
+            errEl.classList.remove('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-bell me-1.5"></i>Set Price Alert';
+        }
+    }
+    </script>
 
     <script src="{{ url_for('static', filename='js/url_search.js') }}"></script>
     <script src="{{ url_for('static', filename='js/product_compare.js') }}"></script>
