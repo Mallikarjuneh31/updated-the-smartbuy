@@ -56,6 +56,9 @@ def get_platform_scraper(platform: str):
             elif plat in ("meesho", "mee"):
                 from scrapers.meesho_scraper import MeeshoScraper
                 _scraper_instances[plat] = MeeshoScraper()
+            elif plat in ("gec", "gececom"):
+                from scrapers.gec_scraper import GecScraper
+                _scraper_instances[plat] = GecScraper()
             else:
                 logger.warning(f"[PriceChecker] Unsupported platform: {platform}")
                 return None
@@ -83,12 +86,32 @@ def fetch_latest_product_price(
         (price_num, error_message, product_data_dict)
     """
     plat = (platform or "").strip().lower()
+    clean_url = (product_url or "").strip()
+    clean_name = (product_name or "").strip()
+
+    # ── Strategy 0: GEC ECom Direct Mock Store Platform ───────────────────────
+    if plat in ("gececom", "gec"):
+        try:
+            from database import get_gececom_product_by_id, get_gececom_products
+            pid_match = re.search(r'#product-([a-f0-9]+)', clean_url, re.IGNORECASE) or re.search(r'products/([a-f0-9]+)', clean_url, re.IGNORECASE)
+            prod = None
+            if pid_match:
+                prod = get_gececom_product_by_id(pid_match.group(1))
+            if not prod and clean_name:
+                for p in get_gececom_products():
+                    p_name = p.get("product_name", "").lower()
+                    if clean_name.lower() in p_name or p_name in clean_name.lower():
+                        prod = p
+                        break
+            if prod:
+                return int(prod["current_price"]), None, prod
+            return None, "GEC ECom product not found in inventory", None
+        except Exception as e:
+            return None, f"GEC ECom lookup error: {e}", None
+
     scraper = get_platform_scraper(plat)
     if not scraper:
         return None, f"Unsupported shopping platform: '{platform}'", None
-
-    clean_url = (product_url or "").strip()
-    clean_name = (product_name or "").strip()
 
     # ── Strategy 1: Direct Product URL Scrape ──────────────────────────────────
     if clean_url:
@@ -564,3 +587,82 @@ def run_price_check_now(alert_id: Optional[str] = None) -> Dict[str, Any]:
             return {"success": False, "error": f"Alert '{alert_id}' not found"}
         return check_single_alert(doc, send_notification=True)
     return check_all_active_alerts(send_notifications=True)
+
+
+def trigger_gececom_price_alerts_for_product(
+    product_id: str,
+    product_name: str,
+    new_price: int,
+    product_url: str = "",
+    product_image: str = ""
+) -> Dict[str, Any]:
+    """
+    Evaluate all active price alerts matching a GEC ECom product.
+    If new_price <= target_price, dispatches rich email notification,
+    creates user inbox message, and transitions alert status to 'triggered'.
+    """
+    from database import get_active_price_alerts
+    active_alerts = get_active_price_alerts()
+    evaluated = 0
+    triggered = 0
+
+    clean_pname = (product_name or "").strip().lower()
+
+    for alert in active_alerts:
+        alert_plat = str(alert.get("platform") or "").strip().lower()
+        alert_pname = str(alert.get("product_name") or "").strip().lower()
+        alert_url = str(alert.get("product_url") or "").strip()
+
+        # Match logic: by product ID in URL, or by platform 'gececom', or matching title
+        is_match = False
+        if product_id and (f"product-{product_id}" in alert_url or f"products/{product_id}" in alert_url):
+            is_match = True
+        elif alert_plat in ("gececom", "gec"):
+            if not clean_pname or not alert_pname:
+                is_match = True
+            elif clean_pname in alert_pname or alert_pname in clean_pname:
+                is_match = True
+        elif clean_pname and (clean_pname == alert_pname or (len(clean_pname) > 6 and clean_pname[:15] in alert_pname)):
+            is_match = True
+
+        if is_match:
+            evaluated += 1
+            target_price = int(alert.get("target_price") or 0)
+            aid = str(alert.get("id") or alert.get("_id"))
+            update_price_alert_checked(aid, latest_price=new_price)
+
+            if new_price <= target_price:
+                email = alert.get("email")
+                user_id = alert.get("user_id")
+                img = product_image or alert.get("product_image", "")
+                p_url = product_url or alert.get("product_url", f"/gececom#product-{product_id}")
+
+                email_ok = send_price_alert_email(
+                    to_email=email,
+                    product_name=alert.get("product_name") or product_name,
+                    platform="GEC ECom",
+                    current_price=new_price,
+                    target_price=target_price,
+                    product_url=p_url,
+                    product_image=img
+                )
+
+                if user_id:
+                    try:
+                        create_inbox_message(
+                            user_id=user_id,
+                            message_type="price_alert",
+                            title=f"Price Alert: {product_name[:40]} dropped to ₹{new_price:,} on GEC ECom!",
+                            message=(
+                                f"Great news! Your tracked item '{product_name}' on GEC ECom "
+                                f"has dropped to ₹{new_price:,}, matching your target price of ₹{target_price:,}."
+                            )
+                        )
+                    except Exception as inb_err:
+                        logger.warning(f"[PriceChecker] Error creating inbox message: {inb_err}")
+
+                mark_price_alert_triggered(aid, latest_price=new_price, alert_sent=email_ok)
+                triggered += 1
+
+    return {"evaluated": evaluated, "triggered": triggered}
+

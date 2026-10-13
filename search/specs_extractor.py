@@ -806,7 +806,7 @@ def has_real_value(value: Any) -> bool:
     return True
 
 
-def should_display_row(amazon_value: Any, flipkart_value: Any, meesho_value: Any) -> bool:
+def should_display_row(amazon_value: Any, flipkart_value: Any, meesho_value: Any, gec_value: Any = None) -> bool:
     """
     Determines whether a specification row should be rendered.
     Returns True only if at least one marketplace has a genuine extracted value.
@@ -814,7 +814,8 @@ def should_display_row(amazon_value: Any, flipkart_value: Any, meesho_value: Any
     return any([
         has_real_value(amazon_value),
         has_real_value(flipkart_value),
-        has_real_value(meesho_value)
+        has_real_value(meesho_value),
+        has_real_value(gec_value)
     ])
 
 
@@ -1226,6 +1227,7 @@ def build_dynamic_specifications(products: dict, category: str) -> list[dict]:
         "amazon": products.get("amazon") or products.get("Amazon"),
         "flipkart": products.get("flipkart") or products.get("Flipkart"),
         "meesho": products.get("meesho") or products.get("Meesho"),
+        "gec": products.get("gec") or products.get("GEC") or products.get("gececom") or products.get("GecEcom"),
     }
 
     # Also collect any extra genuine specification keys present in product dictionaries
@@ -1248,8 +1250,9 @@ def build_dynamic_specifications(products: dict, category: str) -> list[dict]:
         val_amz = extract_field_value(norm_products["amazon"], field, category)
         val_fk = extract_field_value(norm_products["flipkart"], field, category)
         val_mee = extract_field_value(norm_products["meesho"], field, category)
+        val_gec = extract_field_value(norm_products["gec"], field, category)
 
-        if not should_display_row(val_amz, val_fk, val_mee):
+        if not should_display_row(val_amz, val_fk, val_mee, val_gec):
             continue
 
         rows.append({
@@ -1258,7 +1261,8 @@ def build_dynamic_specifications(products: dict, category: str) -> list[dict]:
             "name": field,
             "amazon": val_amz if has_real_value(val_amz) else "—",
             "flipkart": val_fk if has_real_value(val_fk) else "—",
-            "meesho": val_mee if has_real_value(val_mee) else "—"
+            "meesho": val_mee if has_real_value(val_mee) else "—",
+            "gec": val_gec if has_real_value(val_gec) else "—"
         })
 
     return rows
@@ -1273,7 +1277,7 @@ def compute_marketplace_statuses(
     Status is one of: 'Found', 'Partial', 'Timed Out', 'Unavailable'.
     """
     summary = {}
-    for plat in ("Amazon", "Flipkart", "Meesho"):
+    for plat in ("Amazon", "Flipkart", "Meesho", "GEC"):
         p_lower = plat.lower()
         prod = best_match_per_platform.get(plat) or best_match_per_platform.get(p_lower)
         p_stat = platform_status.get(plat) or platform_status.get(p_lower) or {}

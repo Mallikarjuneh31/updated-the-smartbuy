@@ -2525,7 +2525,380 @@ def mark_price_alert_triggered(alert_id: str, latest_price: int, alert_sent: boo
         return False
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# GEC ECom Mock Store & Price Simulator Database Layer
+# ════════════════════════════════════════════════════════════════════════════
+
+DEFAULT_GECECOM_STARTER_PRODUCTS = [
+    {
+        "product_name": "Vivo T4 5G (8GB RAM, 128GB Storage, Titanium Gold)",
+        "amazon_url": "https://www.amazon.in/dp/B0D1VIVOT4",
+        "product_image": "https://m.media-amazon.com/images/I/71Y8rh450HL._SL1500_.jpg",
+        "current_price": 21999,
+        "original_price": 25000,
+        "category": "mobiles",
+        "rating": 4.4,
+        "reviews_count": 320
+    },
+    {
+        "product_name": "Apple iPhone 15 (128 GB) - Black",
+        "amazon_url": "https://www.amazon.in/dp/B0CHX1W1XY",
+        "product_image": "https://m.media-amazon.com/images/I/71657TiFeHL._SL1500_.jpg",
+        "current_price": 65999,
+        "original_price": 79900,
+        "category": "mobiles",
+        "rating": 4.6,
+        "reviews_count": 1450
+    },
+    {
+        "product_name": "Samsung Galaxy S24 5G (8GB RAM, 256GB Storage)",
+        "amazon_url": "https://www.amazon.in/dp/B0CS5X6R2F",
+        "product_image": "https://m.media-amazon.com/images/I/717Qo4MH97L._SL1500_.jpg",
+        "current_price": 69999,
+        "original_price": 79999,
+        "category": "mobiles",
+        "rating": 4.5,
+        "reviews_count": 890
+    },
+    {
+        "product_name": "boAt Rockerz 450 Bluetooth On Ear Headphones",
+        "amazon_url": "https://www.amazon.in/dp/B07PR1CL3S",
+        "product_image": "https://m.media-amazon.com/images/I/51xxA+6E+xL._SL1500_.jpg",
+        "current_price": 1499,
+        "original_price": 3990,
+        "category": "electronics",
+        "rating": 4.2,
+        "reviews_count": 8520
+    },
+    {
+        "product_name": "Safari Sawari 55cm Cabin Trolley Bag",
+        "amazon_url": "https://www.amazon.in/dp/B0D5XYZSAF",
+        "product_image": "https://m.media-amazon.com/images/I/61k1qV6W5oL._SL1200_.jpg",
+        "current_price": 1899,
+        "original_price": 6499,
+        "category": "bags",
+        "rating": 4.3,
+        "reviews_count": 640
+    },
+    {
+        "product_name": "Pigeon by Stovekraft 1.5L Electric Kettle",
+        "amazon_url": "https://www.amazon.in/dp/B07WMS7TWB",
+        "product_image": "https://m.media-amazon.com/images/I/51Q1nAepVAL._SL1080_.jpg",
+        "current_price": 549,
+        "original_price": 1245,
+        "category": "kitchen",
+        "rating": 4.1,
+        "reviews_count": 4200
+    }
+]
 
 
+def _format_gececom_product(doc: dict) -> dict:
+    """Format MongoDB GEC ECom product doc into Jinja2 & API friendly dict."""
+    if not doc:
+        return {}
+    res = dict(doc)
+    pid = str(res.get("_id", res.get("id", "")))
+    res["id"] = pid
+    res["_id"] = pid
 
+    pname = res.get("product_name") or res.get("name") or "GEC ECom Product"
+    res["product_name"] = pname
+    res["name"] = pname
+
+    cur_p = int(res.get("current_price") or res.get("price") or 0)
+    orig_p = int(res.get("original_price") or cur_p)
+    if orig_p < cur_p:
+        orig_p = cur_p
+
+    res["current_price"] = cur_p
+    res["price"] = cur_p
+    res["original_price"] = orig_p
+    res["formatted_current_price"] = f"₹{cur_p:,}"
+    res["formatted_original_price"] = f"₹{orig_p:,}"
+
+    is_disc = orig_p > cur_p
+    res["is_discounted"] = is_disc
+    res["discount_pct"] = round(((orig_p - cur_p) / orig_p) * 100) if is_disc else 0
+
+    res["category"] = res.get("category", "mobiles")
+    res["product_image"] = res.get("product_image") or res.get("image") or ""
+    res["rating"] = res.get("rating", 4.4)
+    res["reviews_count"] = res.get("reviews_count", 320)
+    res["amazon_url"] = res.get("amazon_url", "")
+    return res
+
+
+def get_gececom_products(category: Optional[str] = None) -> list[dict]:
+    """Retrieve all GEC ECom products from smartbuy_db.gececom_products."""
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return [_format_gececom_product(p) for p in DEFAULT_GECECOM_STARTER_PRODUCTS]
+
+    try:
+        query = {}
+        if category and category != "all":
+            query["category"] = category.lower()
+
+        docs = list(db.gececom_products.find(query).sort("created_at", DESCENDING))
+        if not docs:
+            # Auto-seed starter catalog if collection is completely empty
+            seed_default_gececom_products_if_empty()
+            docs = list(db.gececom_products.find(query).sort("created_at", DESCENDING))
+
+        return [_format_gececom_product(d) for d in docs]
+    except Exception as e:
+        logger.error(f"[GecEcom] Error retrieving products: {e}")
+        return [_format_gececom_product(p) for p in DEFAULT_GECECOM_STARTER_PRODUCTS]
+
+
+def get_gececom_product_by_id(product_id: str) -> Optional[dict]:
+    """Retrieve a single GEC ECom product by ID."""
+    global db
+    if db is None:
+        init_db()
+    if db is None or not product_id:
+        return None
+
+    oid = to_object_id(product_id)
+    try:
+        doc = db.gececom_products.find_one({"_id": oid}) if oid else db.gececom_products.find_one({"id": product_id})
+        return _format_gececom_product(doc) if doc else None
+    except Exception as e:
+        logger.error(f"[GecEcom] Error fetching product {product_id}: {e}")
+        return None
+
+
+def create_gececom_product(data: dict) -> tuple[Optional[str], int, str]:
+    """Insert a new product into smartbuy_db.gececom_products."""
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return None, 500, "Database connection is unavailable."
+
+    name = str(data.get("name") or data.get("product_name") or "").strip()
+    if not name:
+        return None, 400, "Product name is required."
+
+    price = _parse_numeric_price(data.get("price") or data.get("current_price"))
+    if not price or price <= 0:
+        return None, 400, "Valid selling price greater than ₹0 is required."
+
+    orig_price = _parse_numeric_price(data.get("original_price") or data.get("origPrice"))
+    if not orig_price or orig_price < price:
+        orig_price = price
+
+    category = str(data.get("category") or "mobiles").lower()
+    image = str(data.get("image") or data.get("product_image") or "").strip()
+    amazon_url = str(data.get("amazon_url") or "").strip()
+    rating = float(data.get("rating", 4.4))
+    reviews_count = int(data.get("reviews_count", 320))
+
+    now = datetime.now(timezone.utc)
+    doc = {
+        "product_name": name,
+        "name": name,
+        "current_price": price,
+        "original_price": orig_price,
+        "category": category,
+        "product_image": image,
+        "amazon_url": amazon_url,
+        "rating": rating,
+        "reviews_count": reviews_count,
+        "created_at": now,
+        "updated_at": now
+    }
+
+    try:
+        res = db.gececom_products.insert_one(doc)
+        pid = str(res.inserted_id)
+        logger.info(f"[GecEcom] Added product '{name}' (₹{price}) with ID {pid}")
+        return pid, 201, "Product added successfully to GEC ECom!"
+    except Exception as e:
+        logger.error(f"[GecEcom] Failed to insert product: {e}")
+        return None, 500, f"Database error: {str(e)}"
+
+
+def update_gececom_product_price(product_id: str, new_price: int) -> tuple[bool, Optional[dict], str]:
+    """Update current price of a GEC ECom product."""
+    global db
+    if db is None:
+        init_db()
+    if db is None or not product_id:
+        return False, None, "Database unavailable."
+
+    new_p = int(new_price)
+    if new_p <= 0:
+        return False, None, "Price must be greater than ₹0."
+
+    oid = to_object_id(product_id)
+    now = datetime.now(timezone.utc)
+    query = {"_id": oid} if oid else {"id": product_id}
+
+    try:
+        existing = db.gececom_products.find_one(query)
+        if not existing:
+            return False, None, "Product not found in GEC ECom catalog."
+
+        orig_price = int(existing.get("original_price") or existing.get("current_price") or new_p)
+        if new_p > orig_price:
+            orig_price = new_p
+
+        db.gececom_products.update_one(
+            query,
+            {"$set": {"current_price": new_p, "original_price": orig_price, "updated_at": now}}
+        )
+        updated_doc = db.gececom_products.find_one(query)
+        # Record price change in price history
+        record_price_history(
+            product_name=existing.get("product_name"),
+            platform="gec",
+            price=new_p,
+            product_url=f"/gececom#product-{product_id}",
+            product_id=str(product_id)
+        )
+        logger.info(f"[GecEcom] Updated price for '{existing.get('product_name')}' to ₹{new_p:,}")
+        return True, _format_gececom_product(updated_doc), "Price updated successfully."
+    except Exception as e:
+        logger.error(f"[GecEcom] Price update error: {e}")
+        return False, None, str(e)
+
+
+def delete_gececom_product(product_id: str) -> tuple[bool, str]:
+    """Delete a product from GEC ECom catalog."""
+    global db
+    if db is None:
+        init_db()
+    if db is None or not product_id:
+        return False, "Database unavailable."
+
+    oid = to_object_id(product_id)
+    query = {"_id": oid} if oid else {"id": product_id}
+    try:
+        res = db.gececom_products.delete_one(query)
+        if res.deleted_count > 0:
+            return True, "Product removed."
+        return False, "Product not found."
+    except Exception as e:
+        logger.error(f"[GecEcom] Delete error: {e}")
+        return False, str(e)
+
+
+def seed_default_gececom_products_if_empty():
+    """Seed initial starter catalog if collection is empty."""
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return
+    try:
+        count = db.gececom_products.count_documents({})
+        if count == 0:
+            now = datetime.now(timezone.utc)
+            to_insert = []
+            for item in DEFAULT_GECECOM_STARTER_PRODUCTS:
+                c = dict(item)
+                c["created_at"] = now
+                c["updated_at"] = now
+                to_insert.append(c)
+            res = db.gececom_products.insert_many(to_insert)
+            for idx, inserted_id in enumerate(res.inserted_ids):
+                item = to_insert[idx]
+                record_price_history(
+                    product_name=item["product_name"],
+                    platform="gec",
+                    price=item["current_price"],
+                    product_url=f"/gececom#product-{inserted_id}",
+                    product_id=str(inserted_id)
+                )
+            logger.info(f"[GecEcom] Seeded {len(to_insert)} starter products into gececom_products.")
+    except Exception as e:
+        logger.warning(f"[GecEcom] Error auto-seeding products: {e}")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Price History Collection (smartbuy_db.price_history)
+# ════════════════════════════════════════════════════════════════════════════
+
+def record_price_history(
+    product_name: str,
+    platform: str,
+    price: Any,
+    product_url: str = "",
+    product_id: str = ""
+) -> Optional[str]:
+    """
+    Record a product's price observation in smartbuy_db.price_history.
+    Tracks price points over time for trend analysis & price drop detection.
+    """
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return None
+
+    clean_pname = str(product_name or "").strip()
+    if not clean_pname:
+        return None
+
+    price_num = _parse_numeric_price(price)
+    if not price_num or price_num <= 0:
+        return None
+
+    clean_plat = str(platform or "gec").strip().lower()
+    now = datetime.now(timezone.utc)
+
+    doc = {
+        "product_name": clean_pname,
+        "platform": clean_plat,
+        "price": price_num,
+        "formatted_price": f"₹{price_num:,}",
+        "product_url": str(product_url or "").strip(),
+        "product_id": str(product_id or "").strip(),
+        "recorded_at": now,
+        "timestamp": now.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    try:
+        res = db.price_history.insert_one(doc)
+        return str(res.inserted_id)
+    except Exception as e:
+        logger.error(f"[PriceHistory] Error logging price: {e}")
+        return None
+
+
+def get_price_history(
+    product_name: str = "",
+    platform: Optional[str] = None,
+    product_id: Optional[str] = None,
+    limit: int = 50
+) -> list[dict]:
+    """Retrieve recorded price history points for a product."""
+    global db
+    if db is None:
+        init_db()
+    if db is None:
+        return []
+
+    query = {}
+    if product_id:
+        query["$or"] = [
+            {"product_id": product_id},
+            {"product_name": re.compile(re.escape(product_name), re.IGNORECASE)}
+        ]
+    elif product_name:
+        query["product_name"] = re.compile(re.escape(product_name), re.IGNORECASE)
+
+    if platform:
+        query["platform"] = platform.lower()
+
+    try:
+        docs = list(db.price_history.find(query).sort("recorded_at", DESCENDING).limit(limit))
+        return [format_doc(d) for d in docs]
+    except Exception as e:
+        logger.error(f"[PriceHistory] Error retrieving history: {e}")
+        return []
 

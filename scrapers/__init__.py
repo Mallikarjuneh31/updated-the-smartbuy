@@ -10,6 +10,7 @@ from scrapers.base_scraper import BaseScraper
 from scrapers.amazon_scraper import AmazonScraper
 from scrapers.flipkart_scraper import FlipkartScraper
 from scrapers.meesho_scraper import MeeshoScraper
+from scrapers.gec_scraper import GecScraper
 
 __all__ = [
     "ScrapeStatus",
@@ -19,4 +20,5 @@ __all__ = [
     "AmazonScraper",
     "FlipkartScraper",
     "MeeshoScraper",
+    "GecScraper",
 ]

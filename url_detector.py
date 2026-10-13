@@ -57,9 +57,11 @@ def detect_search_type(query: str) -> Dict[str, Any]:
     url_match = re.search(r'https?://[^\s]+', q_clean)
     if url_match:
         test_url = url_match.group(0)
+    elif "gececom" in q_clean.lower() or q_clean.startswith("/gececom"):
+        test_url = q_clean if q_clean.startswith("http") else f"http://localhost:5000{q_clean if q_clean.startswith('/') else '/' + q_clean}"
     else:
-        # Check if starts with domain e.g. dl.flipkart.com/s/..., amazon.in/..., meesho.com/...
-        if re.match(r'^(?:www\.)?(?:dl\.)?(amazon|flipkart|meesho|amzn)\.', q_clean, re.I):
+        # Check if starts with domain e.g. dl.flipkart.com/s/..., amazon.in/..., meesho.com/..., gececom
+        if re.match(r'^(?:www\.)?(?:dl\.)?(amazon|flipkart|meesho|amzn|gececom)\.', q_clean, re.I):
             test_url = "https://" + q_clean
         else:
             return {"type": "product_name"}
@@ -78,14 +80,17 @@ def detect_search_type(query: str) -> Dict[str, Any]:
 def detect_platform_from_url(url: str) -> Optional[str]:
     """
     Detect the marketplace platform from product URL.
-    Returns: 'amazon', 'flipkart', 'meesho', or None.
+    Returns: 'amazon', 'flipkart', 'meesho', 'gec', or None.
     """
     if not url or not isinstance(url, str):
         return None
 
     clean = url.strip()
+    if "/gececom" in clean or "gececom" in clean.lower():
+        return "gec"
+
     if not is_valid_http_url(clean):
-        if clean.startswith("www.") or re.match(r'^(?:dl\.)?(amazon|flipkart|meesho|amzn)\.', clean, re.I):
+        if clean.startswith("www.") or re.match(r'^(?:dl\.)?(amazon|flipkart|meesho|amzn|gececom)\.', clean, re.I):
             clean = "https://" + clean
         else:
             return None
@@ -100,6 +105,8 @@ def detect_platform_from_url(url: str) -> Optional[str]:
             return "flipkart"
         if any(hostname == d or hostname.endswith("." + d) for d in MEESHO_DOMAINS) or "meesho" in hostname:
             return "meesho"
+        if "gececom" in hostname or "gececom" in parsed.path:
+            return "gec"
     except Exception:
         pass
 
@@ -190,6 +197,8 @@ def validate_and_detect_url(raw_url: str) -> Dict[str, Any]:
     if not is_valid_http_url(url):
         if url.startswith("www.") or re.match(r'^(?:dl\.)?(amazon|flipkart|meesho|amzn)\.', url, re.IGNORECASE):
             url = "https://" + url
+        elif url.startswith("/gececom") or "gececom" in url:
+            url = "http://127.0.0.1:5000" + (url if url.startswith("/") else "/" + url)
         else:
             return {
                 "is_valid": False,
@@ -284,6 +293,19 @@ def validate_and_detect_url(raw_url: str) -> Dict[str, Any]:
             "canonical_url": url,
             "original_url": url,
             "product_id": mid,
+            "error": None
+        }
+
+    elif platform == "gec":
+        pid_m = re.search(r'#product-([a-zA-Z0-9_\-]+)', url, re.I) or re.search(r'products/([a-zA-Z0-9_\-]+)', url, re.I)
+        pid = pid_m.group(1) if pid_m else url.split('/')[-1]
+        return {
+            "is_valid": True,
+            "platform": "gec",
+            "platform_name": "GEC",
+            "canonical_url": url,
+            "original_url": url,
+            "product_id": pid,
             "error": None
         }
 

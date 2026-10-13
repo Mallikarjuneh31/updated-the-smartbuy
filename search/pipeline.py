@@ -122,12 +122,13 @@ def run_comparison_pipeline(
     validated_products_by_platform: Dict[str, List[Dict[str, Any]]] = {
         "Amazon": [],
         "Flipkart": [],
-        "Meesho": []
+        "Meesho": [],
+        "GEC": []
     }
     all_raw_candidates: List[Dict[str, Any]] = []
     rejected_products: List[Dict[str, Any]] = []
 
-    for platform_key in ("Amazon", "Flipkart", "Meesho"):
+    for platform_key in ("Amazon", "Flipkart", "Meesho", "GEC"):
         raw_items = raw_platform_results.get(platform_key) or raw_platform_results.get(platform_key.lower()) or []
         for item in raw_items:
             if not isinstance(item, dict):
@@ -159,7 +160,7 @@ def run_comparison_pipeline(
                 validated_products_by_platform[platform_key].append(item)
 
     # 2b. Platform Fallback Rescue: ensure no platform is left empty if scraper returned candidates
-    for platform_key in ("Amazon", "Flipkart", "Meesho"):
+    for platform_key in ("Amazon", "Flipkart", "Meesho", "GEC"):
         if not validated_products_by_platform[platform_key]:
             raw_items = raw_platform_results.get(platform_key) or raw_platform_results.get(platform_key.lower()) or []
             rescued_count = 0
@@ -207,9 +208,10 @@ def run_comparison_pipeline(
     best_match_per_platform: Dict[str, Optional[Dict[str, Any]]] = {
         "Amazon": None,
         "Flipkart": None,
-        "Meesho": None
+        "Meesho": None,
+        "GEC": None
     }
-    for plat in ("Amazon", "Flipkart", "Meesho"):
+    for plat in ("Amazon", "Flipkart", "Meesho", "GEC"):
         plat_items = validated_products_by_platform.get(plat) or []
         # Filter for Exact Match or allowed Variant Match with verified price
         exact_or_variant = [
@@ -237,7 +239,7 @@ def run_comparison_pipeline(
     valid_verified_deals: List[Dict[str, Any]] = []
     all_available_deals: List[Dict[str, Any]] = []
 
-    for plat in ("Amazon", "Flipkart", "Meesho"):
+    for plat in ("Amazon", "Flipkart", "Meesho", "GEC"):
         best_p = best_match_per_platform.get(plat)
         if best_p and (best_p.get("price_num") and best_p["price_num"] > 0 or (is_url_search and best_p.get("title"))):
             p_fmt = best_p.get("price") or (f"₹{best_p.get('price_num'):,}" if best_p.get("price_num") else "Check Marketplace")
@@ -314,9 +316,9 @@ def run_comparison_pipeline(
         platform_status
     )
 
-    # 6b. Quality Comparison Table across Amazon, Flipkart, and Meesho
+    # 6b. Quality Comparison Table across Amazon, Flipkart, Meesho, and GEC
     quality_comparison_table = []
-    for plat in ("Amazon", "Flipkart", "Meesho"):
+    for plat in ("Amazon", "Flipkart", "Meesho", "GEC"):
         offer = top_verified_offers.get(plat)
         if offer and offer.get("available") and offer.get("product"):
             p = offer["product"]

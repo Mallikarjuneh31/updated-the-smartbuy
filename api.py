@@ -50,10 +50,14 @@ from database import (
     delete_otp, is_email_verified,
     create_price_alert, get_price_alert_by_id, get_user_price_alerts,
     get_active_price_alerts, pause_price_alert, resume_price_alert,
-    reactivate_price_alert, delete_price_alert
+    reactivate_price_alert, delete_price_alert,
+    get_gececom_products, get_gececom_product_by_id,
+    create_gececom_product, update_gececom_product_price,
+    delete_gececom_product
 )
 from services.price_alert_service import (
-    run_price_check_now, check_all_active_alerts, check_single_alert
+    run_price_check_now, check_all_active_alerts, check_single_alert,
+    trigger_gececom_price_alerts_for_product
 )
 from autocomplete_engine import build_trie_from_history, get_autocomplete_suggestions
 from search.normalizer import normalize_query, build_search_query
@@ -198,13 +202,14 @@ def normalize_external_url(url: str, platform: str = "") -> str:
         return base + u
 
 
-# ── Buy Button Routes (/buy/amazon, /buy/flipkart, /buy/meesho, /deal/redirect) ──
+# ── Buy Button Routes (/buy/amazon, /buy/flipkart, /buy/meesho, /buy/gec, /deal/redirect) ──
 @api_bp.route('/buy/amazon', methods=['GET'])
 @api_bp.route('/buy/flipkart', methods=['GET'])
 @api_bp.route('/buy/meesho', methods=['GET'])
+@api_bp.route('/buy/gec', methods=['GET'])
 @api_bp.route('/deal/redirect', methods=['GET'])
 def handle_buy_click():
-    """Handler for user clicking Buy on Amazon/Flipkart/Meesho. Checks auth; saves product in session; redirects to signup if unauthenticated."""
+    """Handler for user clicking Buy on Amazon/Flipkart/Meesho/GEC. Checks auth; saves product in session; redirects to signup if unauthenticated."""
     deal_url_raw = request.args.get('url', '').strip()
     platform = request.args.get('platform', '').strip()
     if not platform:
@@ -215,6 +220,8 @@ def handle_buy_click():
             platform = 'Flipkart'
         elif 'meesho' in path:
             platform = 'Meesho'
+        elif 'gec' in path:
+            platform = 'GEC E-Commerce'
         else:
             platform = 'Online Store'
 
@@ -227,6 +234,8 @@ def handle_buy_click():
         platform_clean = 'Flipkart'
     elif 'meesho' in p_low:
         platform_clean = 'Meesho'
+    elif 'gec' in p_low:
+        platform_clean = 'GEC E-Commerce'
     elif platform_clean:
         platform_clean = platform_clean.capitalize()
     else:
@@ -1071,6 +1080,14 @@ def search():
             url_param = detected.get('url') or raw_q
 
     if url_param:
+        if '/gececom' in url_param or 'gececom#product-' in url_param:
+            pid_m = re.search(r'#product-([a-f0-9]+)', url_param, re.IGNORECASE) or re.search(r'products/([a-f0-9]+)', url_param, re.IGNORECASE)
+            g_prod = get_gececom_product_by_id(pid_m.group(1)) if pid_m else None
+            if g_prod:
+                target_q = g_prod.get('product_name') or 'Vivo T4'
+                return redirect(url_for('api.search', q=target_q))
+            return redirect(url_for('api.gececom_storefront'))
+
         fresh = request.args.get('fresh', '0').lower() in ('1', 'true', 'yes')
         comp_result = compare_by_product_url(url_param, fresh=fresh)
         if not comp_result.get('success'):
@@ -1803,6 +1820,8 @@ def _resolve_price_alert_identity():
 
 
 @api_bp.route('/price-alert', methods=['POST'])
+@api_bp.route('/api/price-alerts', methods=['POST'])
+@api_bp.route('/api/price-alert', methods=['POST'])
 def create_price_alert_route():
     """
     POST /price-alert
@@ -1993,3 +2012,91 @@ def my_price_alerts_page():
         total_savings=total_savings,
         current_user=user
     )
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# GEC ECom Mock Store & Interactive Price Drop Simulator Routes
+# ════════════════════════════════════════════════════════════════════════════
+
+@api_bp.route('/gececom', methods=['GET'])
+def gececom_storefront():
+    """
+    GET /gececom
+    Render GEC ECom storefront with live product inventory and real-time
+    interactive price drop simulator.
+    """
+    cat = request.args.get('category', 'all')
+    products = get_gececom_products(category=cat)
+    user_id = session.get('user_id')
+    user = get_user_by_id(user_id) if user_id else None
+    return render_template('gececom.html', products=products, current_user=user)
+
+
+@api_bp.route('/api/gececom/products', methods=['GET'])
+def get_gececom_products_api():
+    """GET /api/gececom/products - Retrieve all GEC ECom products in JSON."""
+    cat = request.args.get('category')
+    products = get_gececom_products(category=cat)
+    return jsonify({"success": True, "count": len(products), "products": products}), 200
+
+
+@api_bp.route('/api/gececom/products', methods=['POST'])
+def create_gececom_product_api():
+    """POST /api/gececom/products - Add product to GEC ECom catalog."""
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    pid, code, msg = create_gececom_product(data)
+    if not pid or code >= 400:
+        return jsonify({"success": False, "message": msg}), code
+
+    prod = get_gececom_product_by_id(pid)
+    return jsonify({"success": True, "message": msg, "product": prod}), 201
+
+
+@api_bp.route('/api/gececom/products/<product_id>/price', methods=['PUT', 'POST'])
+def update_gececom_product_price_api(product_id):
+    """
+    PUT /api/gececom/products/{id}/price
+    Update selling price of a product in GEC ECom catalog.
+    If trigger_check is True, checks active price alerts matching this item,
+    dispatches email alerts, creates user inbox messages, and returns trigger summary.
+    """
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    new_price = int(data.get('new_price') or data.get('price') or 0)
+    trigger_check = bool(data.get('trigger_check', True))
+
+    if new_price <= 0:
+        return jsonify({"success": False, "message": "Price must be greater than ₹0."}), 400
+
+    ok, updated_doc, msg = update_gececom_product_price(product_id, new_price)
+    if not ok or not updated_doc:
+        return jsonify({"success": False, "message": msg}), 400
+
+    trigger_results = {"evaluated": 0, "triggered": 0}
+    if trigger_check:
+        try:
+            trigger_results = trigger_gececom_price_alerts_for_product(
+                product_id=product_id,
+                product_name=updated_doc.get("product_name", ""),
+                new_price=new_price,
+                product_url=f"/gececom#product-{product_id}",
+                product_image=updated_doc.get("product_image", "")
+            )
+        except Exception as e:
+            logger.warning(f"[GecEcom] Error auto-triggering alerts: {e}")
+
+    return jsonify({
+        "success": True,
+        "message": msg,
+        "product": updated_doc,
+        "formatted_new_price": updated_doc.get("formatted_current_price", f"₹{new_price:,}"),
+        "new_price": new_price,
+        "trigger_results": trigger_results
+    }), 200
+
+
+@api_bp.route('/api/gececom/products/<product_id>', methods=['DELETE', 'POST'])
+def delete_gececom_product_api(product_id):
+    """DELETE /api/gececom/products/{id} - Remove product from GEC ECom catalog."""
+    ok, msg = delete_gececom_product(product_id)
+    return jsonify({"success": ok, "message": msg}), (200 if ok else 400)
+

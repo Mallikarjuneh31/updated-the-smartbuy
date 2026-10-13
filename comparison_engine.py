@@ -29,6 +29,7 @@ from product_matcher import (
 from scrapers.amazon_scraper import AmazonScraper
 from scrapers.flipkart_scraper import FlipkartScraper
 from scrapers.meesho_scraper import MeeshoScraper
+from scrapers.gec_scraper import GecScraper
 from scrapers.scraper_result import ScrapeStatus
 from search.matching_service import get_category_spec_keys, extract_normalized_specs
 
@@ -38,6 +39,7 @@ _scrapers = {
     "amazon": AmazonScraper(),
     "flipkart": FlipkartScraper(),
     "meesho": MeeshoScraper(),
+    "gec": GecScraper(),
 }
 
 # Cache for URL comparisons
@@ -165,7 +167,15 @@ def build_url_specifications_matrix(
     from search.category_detector import detect_category
 
     category = canonical.get('category') or detect_category(title=canonical.get('title', ''), query=canonical.get('title', '')) or 'default'
-    return build_dynamic_specifications(matches, category)
+    matrix = build_dynamic_specifications(matches, category)
+    if platform_status:
+        for row in matrix:
+            for p_key, p_stat in platform_status.items():
+                p_lower = p_key.lower()
+                if p_lower in row and (row[p_lower] in ('—', '-', '', None)):
+                    if not p_stat.get('available', True) or p_stat.get('status') in ('unavailable', 'error', 'failed'):
+                        row[p_lower] = "Temporarily unavailable"
+    return matrix
 
 
 def compare_by_product_url_stream(
@@ -255,21 +265,22 @@ def compare_by_product_url_stream(
     }
 
     # ── Steps 3-5: Search other platforms concurrently ──────────────────────
-    target_platforms = [p for p in ["amazon", "flipkart", "meesho"] if p != source_platform]
+    SUPPORTED_PLATFORMS = ["amazon", "flipkart", "meesho", "gec"]
+    target_platforms = [p for p in SUPPORTED_PLATFORMS if p != source_platform]
     search_query = generate_search_query_from_product(source_product)
     logger.info(f"[URL_SEARCH] Searching targets {target_platforms} with generated query: '{search_query}'")
 
-    raw_candidates: Dict[str, List[Dict[str, Any]]] = {p: [] for p in ["amazon", "flipkart", "meesho"]}
+    raw_candidates: Dict[str, List[Dict[str, Any]]] = {p: [] for p in SUPPORTED_PLATFORMS}
     raw_candidates[source_platform] = [source_product]
 
     platform_status: Dict[str, Dict[str, Any]] = {
-        p.capitalize(): {
+        (p.upper() if p == "gec" else p.capitalize()): {
             "status": "success" if p == source_platform else "pending",
             "available": True if p == source_platform else False,
             "error": None,
             "count": 1 if p == source_platform else 0
         }
-        for p in ["amazon", "flipkart", "meesho"]
+        for p in SUPPORTED_PLATFORMS
     }
 
     def _scrape_target(plat):
@@ -278,11 +289,11 @@ def compare_by_product_url_stream(
         stat_val = stat.value if hasattr(stat, "value") else str(stat)
         return plat, items, stat_val, err
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         future_map = {executor.submit(_scrape_target, p): p for p in target_platforms}
         for future in as_completed(future_map):
             plat = future_map[future]
-            p_cap = plat.capitalize()
+            p_cap = plat.upper() if plat == "gec" else plat.capitalize()
             try:
                 p_name, items, stat_val, err_msg = future.result(timeout=40)
                 raw_candidates[p_name] = items or []
@@ -291,7 +302,7 @@ def compare_by_product_url_stream(
                 platform_status[p_cap]["status"] = stat_val
                 platform_status[p_cap]["error"] = err_msg
 
-                step_num = 3 if plat == "amazon" else (4 if plat == "flipkart" else 5)
+                step_num = 3 if plat == "amazon" else (4 if plat == "flipkart" else (5 if plat == "meesho" else 6))
                 yield {
                     "step": step_num,
                     "step_id": f"{plat}_checked",
@@ -305,7 +316,7 @@ def compare_by_product_url_stream(
                 platform_status[p_cap]["available"] = False
                 platform_status[p_cap]["error"] = str(exc)
 
-                step_num = 3 if plat == "amazon" else (4 if plat == "flipkart" else 5)
+                step_num = 3 if plat == "amazon" else (4 if plat == "flipkart" else (5 if plat == "meesho" else 6))
                 yield {
                     "step": step_num,
                     "step_id": f"{plat}_checked",
@@ -315,7 +326,7 @@ def compare_by_product_url_stream(
                 }
 
     # Also yield the source platform step if not yet yielded
-    src_step_num = 3 if source_platform == "amazon" else (4 if source_platform == "flipkart" else 5)
+    src_step_num = 3 if source_platform == "amazon" else (4 if source_platform == "flipkart" else (5 if source_platform == "meesho" else 6))
     yield {
         "step": src_step_num,
         "step_id": f"{source_platform}_checked",
@@ -330,7 +341,8 @@ def compare_by_product_url_stream(
     raw_by_plat = {
         "Amazon": raw_candidates.get("amazon", []),
         "Flipkart": raw_candidates.get("flipkart", []),
-        "Meesho": raw_candidates.get("meesho", [])
+        "Meesho": raw_candidates.get("meesho", []),
+        "GEC": raw_candidates.get("gec", [])
     }
 
     pipeline_data = run_comparison_pipeline(
@@ -346,17 +358,18 @@ def compare_by_product_url_stream(
         "amazon": best_match_per_platform.get("Amazon"),
         "flipkart": best_match_per_platform.get("Flipkart"),
         "meesho": best_match_per_platform.get("Meesho"),
+        "gec": best_match_per_platform.get("GEC"),
     }
     # Ensure source platform match is anchored to source product
     matched_results[source_platform] = source_product
 
     similar_by_platform: Dict[str, List[Dict[str, Any]]] = {
         p: [item for item in raw_candidates.get(p, []) if item != matched_results.get(p)]
-        for p in ["amazon", "flipkart", "meesho"]
+        for p in SUPPORTED_PLATFORMS
     }
 
     matching_breakdown: Dict[str, Any] = {}
-    for plat in ["amazon", "flipkart", "meesho"]:
+    for plat in SUPPORTED_PLATFORMS:
         m_item = matched_results.get(plat)
         matching_breakdown[plat] = {
             "has_exact_match": bool(m_item and m_item.get("match_status") == "EXACT_MATCH"),

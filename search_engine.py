@@ -19,6 +19,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from scrapers.amazon_scraper import AmazonScraper
 from scrapers.flipkart_scraper import FlipkartScraper
 from scrapers.meesho_scraper import MeeshoScraper
+from scrapers.gec_scraper import GecScraper
 
 # ── Processing Package ───────────────────────────────────────────────────
 from search.normalizer import normalize_query, detect_query_type
@@ -43,6 +44,7 @@ _scrapers_instances = {
     "Amazon": AmazonScraper(),
     "Flipkart": FlipkartScraper(),
     "Meesho": MeeshoScraper(),
+    "GEC": GecScraper(),
 }
 
 
@@ -99,7 +101,7 @@ def fetch_all_products_parallel(query: str, bypass_fresh: bool = False) -> tuple
             logger.exception(f"[{name}] Scraper execution exception: {err}")
             return name, [], "scraper_error", str(err), "live", dur
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=4) as executor:
         future_to_platform = {
             executor.submit(_execute_scraper, name, obj, query): name
             for name, obj in platforms_to_scrape.items()
@@ -144,13 +146,14 @@ def fetch_all_products_parallel(query: str, bypass_fresh: bool = False) -> tuple
 def fetch_all_products_with_fallbacks(query_chain: list[str], bypass_fresh: bool = False) -> tuple[dict, dict]:
     """
     Execute scraper search with automatic fallback loop:
-    Try query_chain[0] broad query across Amazon, Flipkart, Meesho.
+    Try query_chain[0] broad query across Amazon, Flipkart, Meesho, GEC.
     """
-    combined_raw = {"Amazon": [], "Flipkart": [], "Meesho": []}
+    combined_raw = {"Amazon": [], "Flipkart": [], "Meesho": [], "GEC": []}
     combined_status = {
         "Amazon": {"available": False, "error": None, "count": 0, "status": "unavailable"},
         "Flipkart": {"available": False, "error": None, "count": 0, "status": "unavailable"},
         "Meesho": {"available": False, "error": None, "count": 0, "status": "unavailable"},
+        "GEC": {"available": False, "error": None, "count": 0, "status": "unavailable"},
     }
 
     if not query_chain:
@@ -252,6 +255,7 @@ def process_results(query: str, raw_results: dict,
         "Amazon": best_match_per_platform.get("Amazon"),
         "Flipkart": best_match_per_platform.get("Flipkart"),
         "Meesho": best_match_per_platform.get("Meesho"),
+        "GEC": best_match_per_platform.get("GEC"),
     }
 
     ai_summary = get_ai_comparison(query, platform_results)
@@ -268,12 +272,17 @@ def process_results(query: str, raw_results: dict,
         "meesho": {
             "status": platform_status.get("Meesho", {}).get("status", "success"),
             "products": platform_results.get("Meesho", [])
+        },
+        "gec": {
+            "status": platform_status.get("GEC", {}).get("status", "success"),
+            "products": platform_results.get("GEC", [])
         }
     }
 
     amz_prod = best_match_per_platform.get("Amazon") or (platform_results.get("Amazon", [None])[0] if platform_results.get("Amazon") else None)
     fk_prod = best_match_per_platform.get("Flipkart") or (platform_results.get("Flipkart", [None])[0] if platform_results.get("Flipkart") else None)
     mee_prod = best_match_per_platform.get("Meesho") or (platform_results.get("Meesho", [None])[0] if platform_results.get("Meesho") else None)
+    gec_prod = best_match_per_platform.get("GEC") or (platform_results.get("GEC", [None])[0] if platform_results.get("GEC") else None)
 
     comparison = {
         "query": query,
@@ -283,13 +292,15 @@ def process_results(query: str, raw_results: dict,
         "amazon": amz_prod,
         "flipkart": fk_prod,
         "meesho": mee_prod,
+        "gec": gec_prod,
         "Amazon": amz_prod,
         "Flipkart": fk_prod,
         "Meesho": mee_prod,
+        "GEC": gec_prod,
         "specification_table": {
             "has_match": pipeline_data["has_cross_platform_match"],
             "rows": specifications_matrix,
-            "columns": ["specification", "amazon", "flipkart", "meesho"]
+            "columns": ["specification", "amazon", "flipkart", "meesho", "gec"]
         },
         "quality_comparison_table": quality_comparison_table,
         "comparison_summary": comparison_summary,
@@ -297,7 +308,8 @@ def process_results(query: str, raw_results: dict,
         "products": {
             "amazon": platform_results.get("Amazon", []),
             "flipkart": platform_results.get("Flipkart", []),
-            "meesho": platform_results.get("Meesho", [])
+            "meesho": platform_results.get("Meesho", []),
+            "gec": platform_results.get("GEC", [])
         }
     }
 

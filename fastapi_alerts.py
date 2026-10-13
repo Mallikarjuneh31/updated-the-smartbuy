@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
 # Initialize FastAPI App
 app = FastAPI(
     title="SmartBuy Price Alert API",
-    description="Multi-Platform Real-time Price Drop Alert & Notification System for Amazon, Flipkart, and Meesho",
+    description="Multi-Platform Real-time Price Drop Alert & Notification System for Amazon, Flipkart, Meesho, and GEC",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -80,8 +80,8 @@ router = APIRouter(tags=["Price Alerts"])
 
 class PriceAlertCreate(BaseModel):
     product_name: str = Field(..., description="Full title of the product")
-    product_url: str = Field(..., description="Direct marketplace URL on Amazon, Flipkart, or Meesho")
-    platform: str = Field(..., description="Shopping marketplace ('amazon', 'flipkart', 'meesho')")
+    product_url: str = Field(..., description="Direct marketplace URL on Amazon, Flipkart, Meesho, or GEC")
+    platform: str = Field(..., description="Shopping marketplace ('amazon', 'flipkart', 'meesho', 'gec')")
     current_price: Union[int, float, str] = Field(..., description="Current price at time of alert creation")
     target_price: Union[int, float, str] = Field(..., description="Target price below which to trigger alert")
     email: str = Field(..., description="User notification email address")

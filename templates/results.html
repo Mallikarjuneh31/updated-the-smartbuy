@@ -131,6 +131,7 @@
         .bg-amazon  { background: linear-gradient(135deg, #232f3e, #ff9900) !important; }
         .bg-flipkart{ background: linear-gradient(135deg, #2874f0, #ffe500) !important; color: #111 !important; }
         .bg-meesho  { background: linear-gradient(135deg, #f43397, #bb1c6f) !important; }
+        .bg-gec     { background: linear-gradient(135deg, #0284c7, #0f766e) !important; color: #fff !important; }
         /* ── Specs box ── */
         .specs-badge {
             background: rgba(255,255,255,0.9);
@@ -337,6 +338,7 @@
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/about"><i class="fas fa-info-circle me-1 text-secondary"></i>About</a></li>
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold active" href="/search"><i class="fas fa-search me-1 text-success"></i>Search Products</a></li>
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/my-price-alerts"><i class="fas fa-bell me-1 text-success"></i>Price Alerts</a></li>
+                <li class="nav-item"><a class="nav-link px-2 fw-semibold text-info" href="/gececom"><i class="fas fa-store me-1"></i>GEC ECom</a></li>
                 {% if current_user %}
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/profile"><i class="fas fa-user-circle me-1 text-primary"></i>Profile</a></li>
                 {% endif %}
@@ -953,6 +955,7 @@
                     {% set amz_stat = marketplace_status.get('Amazon', {}) if marketplace_status else {} %}
                     {% set fk_stat = marketplace_status.get('Flipkart', {}) if marketplace_status else {} %}
                     {% set mee_stat = marketplace_status.get('Meesho', {}) if marketplace_status else {} %}
+                    {% set gec_stat = marketplace_status.get('GEC', {}) if marketplace_status else {} %}
 
                     <div class="d-flex align-items-center gap-1">
                         <span class="badge bg-amazon text-white px-2 py-1 rounded-pill small">Amazon:</span>
@@ -974,21 +977,31 @@
                             <i class="{{ mee_stat.icon or 'fas fa-minus-circle' }} me-1"></i>{{ mee_stat.label or (mee_stat.status if mee_stat else 'Unavailable') }}
                         </span>
                     </div>
+
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="badge bg-gec text-white px-2 py-1 rounded-pill small" style="background:#0284c7;">GEC:</span>
+                        <span class="badge {{ gec_stat.badge_class or 'bg-secondary text-white' }} px-2 py-1 rounded-pill small">
+                            <i class="{{ gec_stat.icon or 'fas fa-minus-circle' }} me-1"></i>{{ gec_stat.label or (gec_stat.status if gec_stat else 'Unavailable') }}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0 text-center" style="font-size: 0.88rem;">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 25%; text-align: left; padding-left: 20px;">Specification</th>
-                                <th style="width: 25%;">
+                                <th style="width: 20%; text-align: left; padding-left: 20px;">Specification</th>
+                                <th style="width: 20%;">
                                     <span class="badge bg-amazon text-white px-3 py-1 rounded-pill">Amazon</span>
                                 </th>
-                                <th style="width: 25%;">
+                                <th style="width: 20%;">
                                     <span class="badge bg-flipkart text-dark px-3 py-1 rounded-pill">Flipkart</span>
                                 </th>
-                                <th style="width: 25%;">
+                                <th style="width: 20%;">
                                     <span class="badge bg-meesho text-white px-3 py-1 rounded-pill">Meesho</span>
+                                </th>
+                                <th style="width: 20%;">
+                                    <span class="badge bg-gec text-white px-3 py-1 rounded-pill" style="background:#0284c7;">GEC E-Commerce</span>
                                 </th>
                             </tr>
                         </thead>
@@ -997,6 +1010,7 @@
                             {% set amz_item = comparison_data.amazon or comparison_data.Amazon or (best_per_platform.get('Amazon') if best_per_platform else None) or (platform_results.Amazon[0] if (platform_results and platform_results.get('Amazon')) else None) %}
                             {% set fk_item = comparison_data.flipkart or comparison_data.Flipkart or (best_per_platform.get('Flipkart') if best_per_platform else None) or (platform_results.Flipkart[0] if (platform_results and platform_results.get('Flipkart')) else None) %}
                             {% set mee_item = comparison_data.meesho or comparison_data.Meesho or (best_per_platform.get('Meesho') if best_per_platform else None) or (platform_results.Meesho[0] if (platform_results and platform_results.get('Meesho')) else None) %}
+                            {% set gec_item = comparison_data.gec or comparison_data.GEC or comparison_data.gececom or (best_per_platform.get('GEC') if best_per_platform else None) or (platform_results.GEC[0] if (platform_results and platform_results.get('GEC')) else None) %}
 
                             <!-- Product Preview Image Row -->
                             <tr class="table-light">
@@ -1028,6 +1042,15 @@
                                     <span class="text-muted">—</span>
                                     {% endif %}
                                 </td>
+                                <td>
+                                    {% set gec_img = gec_item.image if (gec_item and gec_item.image) else (gec_item.image_url if (gec_item and gec_item.image_url) else None) %}
+                                    {% if gec_img and gec_img|length >= 10 and not ('placeholder' in gec_img|lower or 'no_image' in gec_img|lower) %}
+                                    <img src="{{ gec_img }}" alt="GEC Product" style="height: 70px; max-width: 100px; object-fit: contain; border-radius: 6px; background:#fff; padding: 2px;" referrerpolicy="no-referrer" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline';">
+                                    <span style="display:none;" class="text-muted">—</span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
                             </tr>
 
                             <!-- Categorized Specification Rows with Distinct Preference Dividers -->
@@ -1044,17 +1067,19 @@
                                 {% set amz_val = row.amazon %}
                                 {% set fk_val = row.flipkart %}
                                 {% set mee_val = row.meesho %}
+                                {% set gec_val = row.gec %}
                                 {% set has_amz = amz_val and amz_val not in is_inv and not ('temporarily unavailable' in amz_val|string|lower or 'scraping unavailable' in amz_val|string|lower or 'no matching product' in amz_val|string|lower) %}
                                 {% set has_fk = fk_val and fk_val not in is_inv and not ('temporarily unavailable' in fk_val|string|lower or 'scraping unavailable' in fk_val|string|lower or 'no matching product' in fk_val|string|lower) %}
                                 {% set has_mee = mee_val and mee_val not in is_inv and not ('temporarily unavailable' in mee_val|string|lower or 'scraping unavailable' in mee_val|string|lower or 'no matching product' in mee_val|string|lower) %}
+                                {% set has_gec = gec_val and gec_val not in is_inv and not ('temporarily unavailable' in gec_val|string|lower or 'scraping unavailable' in gec_val|string|lower or 'no matching product' in gec_val|string|lower) %}
 
-                                {% if (has_amz or has_fk or has_mee) and r_name not in ('Buy Link', 'link', 'url', 'product_url') %}
+                                {% if (has_amz or has_fk or has_mee or has_gec) and r_name not in ('Buy Link', 'link', 'url', 'product_url') %}
 
                                     {# Render Section 1: Quality of Product (First Preference) Header #}
                                     {% if r_name in quality_field_names and not ns.shown_quality_hdr %}
                                         {% set ns.shown_quality_hdr = true %}
                                         <tr class="table-primary bg-primary bg-opacity-10 border-top border-bottom border-primary border-opacity-25">
-                                            <td colspan="4" class="text-start ps-4 py-2 fw-bold text-primary small text-uppercase" style="letter-spacing: 0.5px;">
+                                            <td colspan="5" class="text-start ps-4 py-2 fw-bold text-primary small text-uppercase" style="letter-spacing: 0.5px;">
                                                 <i class="fas fa-award me-2"></i>1. Product Quality &amp; Trust Evidence (First Preference)
                                             </td>
                                         </tr>
@@ -1064,7 +1089,7 @@
                                     {% if r_name in price_field_names and not ns.shown_price_hdr %}
                                         {% set ns.shown_price_hdr = true %}
                                         <tr class="table-success bg-success bg-opacity-10 border-top border-bottom border-success border-opacity-25">
-                                            <td colspan="4" class="text-start ps-4 py-2 fw-bold text-success small text-uppercase" style="letter-spacing: 0.5px;">
+                                            <td colspan="5" class="text-start ps-4 py-2 fw-bold text-success small text-uppercase" style="letter-spacing: 0.5px;">
                                                 <i class="fas fa-tag me-2"></i>2. Product Price &amp; Value Analysis (Next Preference)
                                             </td>
                                         </tr>
@@ -1074,7 +1099,7 @@
                                     {% if r_name not in identity_field_names and r_name not in quality_field_names and r_name not in price_field_names and not ns.shown_tech_hdr %}
                                         {% set ns.shown_tech_hdr = true %}
                                         <tr class="table-light border-top border-bottom border-secondary border-opacity-25">
-                                            <td colspan="4" class="text-start ps-4 py-2 fw-bold text-secondary small text-uppercase" style="letter-spacing: 0.5px;">
+                                            <td colspan="5" class="text-start ps-4 py-2 fw-bold text-secondary small text-uppercase" style="letter-spacing: 0.5px;">
                                                 <i class="fas fa-sliders-h me-2"></i>3. Product Technical Specifications
                                             </td>
                                         </tr>
@@ -1097,6 +1122,9 @@
                                         </td>
                                         <td class="{% if r_name == 'Price' and comparison_data.get('best_deal') and comparison_data.best_deal.platform == 'Meesho' %}fw-bold text-success bg-success bg-opacity-10{% elif r_name == 'Quality Score' %}fw-bold text-primary{% endif %}">
                                             {{ mee_val if has_mee else '—' }}
+                                        </td>
+                                        <td class="{% if r_name == 'Price' and comparison_data.get('best_deal') and comparison_data.best_deal.platform in ('GEC', 'gec', 'GEC E-Commerce') %}fw-bold text-success bg-success bg-opacity-10{% elif r_name == 'Quality Score' %}fw-bold text-primary{% endif %}">
+                                            {{ gec_val if has_gec else '—' }}
                                         </td>
                                     </tr>
                                 {% endif %}
@@ -1148,6 +1176,22 @@
                                        onclick="triggerBuyRedirect(this)"
                                        class="btn btn-danger btn-sm rounded-pill px-3 py-1 fw-bold shadow-sm" style="background:#f43397; border-color:#f43397;">
                                        <i class="fas fa-external-link-alt me-1"></i>Buy on Meesho
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set gec_url = gec_item.product_url or gec_item.link or gec_item.url if gec_item else None %}
+                                    {% if gec_url and gec_url != '#' %}
+                                    <a href="javascript:void(0)"
+                                       data-url="{{ gec_url }}"
+                                       data-platform="GEC E-Commerce"
+                                       data-product-name="{{ gec_item.title }}"
+                                       data-price="{{ gec_item.price_formatted or gec_item.price }}"
+                                       onclick="triggerBuyRedirect(this)"
+                                       class="btn btn-info btn-sm rounded-pill px-3 py-1 fw-bold text-white shadow-sm" style="background:#0284c7; border-color:#0284c7;">
+                                       <i class="fas fa-external-link-alt me-1"></i>Buy on GEC
                                     </a>
                                     {% else %}
                                     <span class="text-muted">—</span>
@@ -1239,21 +1283,23 @@
 
             <!-- ════ 1. SIDE-BY-SIDE PLATFORMS VIEW (DEFAULT PRIMARY VIEW) ════ -->
             <div id="viewPlatform">
-                {% set has_results = (platform_results.get('Amazon',[])|length > 0) or (platform_results.get('Flipkart',[])|length > 0) or (platform_results.get('Meesho',[])|length > 0) %}
+                {% set has_results = (platform_results.get('Amazon',[])|length > 0) or (platform_results.get('Flipkart',[])|length > 0) or (platform_results.get('Meesho',[])|length > 0) or (platform_results.get('GEC',[])|length > 0) %}
 
                 {% if has_results %}
                 <div class="row g-3 comparison-grid">
                     {% for platform, items in platform_results.items() %}
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-xl-3 col-lg-4 col-md-6">
                         <div class="card border-0 shadow-sm h-100 glass-card platform-column-card" style="border-radius:16px;">
                             <!-- Platform Vertical Header -->
                             <div class="card-header border-0 text-white text-center py-3 d-flex align-items-center justify-content-center
-                                {% if platform == 'Amazon' %}bg-amazon{% elif platform == 'Flipkart' %}bg-flipkart{% else %}bg-meesho{% endif %}"
+                                {% if platform == 'Amazon' %}bg-amazon{% elif platform == 'Flipkart' %}bg-flipkart{% elif platform in ('GEC', 'gec', 'GEC ECom') %}bg-gec{% else %}bg-meesho{% endif %}"
                                 style="border-radius: 16px 16px 0 0;">
                                 {% if platform == 'Amazon' %}
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon" style="height:20px; filter:brightness(0) invert(1); margin-right:8px;">
                                 {% elif platform == 'Flipkart' %}
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg" alt="Flipkart" style="height:20px; margin-right:8px;">
+                                {% elif platform in ('GEC', 'gec', 'GEC ECom') %}
+                                <span class="badge bg-white text-dark fw-bold me-2 px-2 py-0.5 shadow-xs"><i class="fas fa-store text-info me-1"></i>GEC</span>
                                 {% else %}
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/8/80/Meesho_Logo_Logo.svg" alt="Meesho" style="height:20px; filter:brightness(0) invert(1); margin-right:8px;">
                                 {% endif %}
@@ -1898,7 +1944,7 @@
 
                                     <!-- 1. Quality Score (First Preference) -->
                                     <td style="background:rgba(14,165,233,0.03);">
-                                        {% if item.quality_score is not none and item.get('has_sufficient_data', True) %}
+                                        {% if item.quality_score is defined and item.quality_score is not none and item.get('has_sufficient_data', True) %}
                                         <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1 rounded-pill fw-bold d-inline-block" style="font-size:0.75rem;">
                                             <i class="fas fa-award me-1"></i>{{ item.quality_score|round|int }}/100
                                         </span>

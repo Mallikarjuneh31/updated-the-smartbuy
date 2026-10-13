@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEC ECom — Online Shopping Store | Direct Electronics & Lifestyle</title>
+    <meta name="description" content="GEC ECom Store: Buy electronics, smartphones, accessories, and home lifestyle products with instant price transparency, fast delivery, and verified quality.">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --gec-primary: #0284c7;
+            --gec-primary-dark: #0369a1;
+            --gec-teal: #0f766e;
+            --gec-dark: #0f172a;
+            --gec-surface: #ffffff;
+            --gec-bg: #f8fafc;
+            --gec-border: #e2e8f0;
+            --gec-accent: #f59e0b;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+            background-color: var(--gec-bg);
+            color: #1e293b;
+        }
+
+        /* Top Announcement Bar */
+        .gec-topbar {
+            background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%);
+            color: #94a3b8;
+            font-size: 0.98rem;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* E-Commerce Header */
+        .gec-navbar {
+            background: #ffffff;
+            border-bottom: 1px solid var(--gec-border);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
+
+        .gec-brand {
+            font-size: 1.85rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--gec-dark);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .gec-brand .gec-badge {
+            background: linear-gradient(135deg, #0284c7, #0f766e);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        /* Search input inside GEC ECom */
+        .gec-search-bar {
+            position: relative;
+            max-width: 520px;
+            flex-grow: 1;
+        }
+        .gec-search-bar input {
+            border-radius: 999px;
+            padding-left: 48px;
+            padding-right: 20px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            font-size: 1.1rem;
+            height: 48px;
+            transition: all 0.2s ease;
+        }
+        .gec-search-bar input:focus {
+            background: #fff;
+            border-color: var(--gec-primary);
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+        .gec-search-bar .search-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 1.15rem;
+        }
+
+        /* Sub-nav Category Pills */
+        .gec-subnav {
+            background: #ffffff;
+            border-bottom: 1px solid var(--gec-border);
+            padding: 10px 0;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .gec-category-pill {
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 999px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #475569;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            margin-right: 8px;
+        }
+        .gec-category-pill:hover,
+        .gec-category-pill.active {
+            background: #e0f2fe;
+            color: var(--gec-primary);
+            border-color: #bae6fd;
+        }
+
+        /* Storefront Hero Banner */
+        .gec-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%);
+            color: #fff;
+            border-radius: 20px;
+            padding: 38px 42px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+            margin-bottom: 30px;
+        }
+        .gec-hero::after {
+            content: '';
+            position: absolute;
+            right: -60px;
+            top: -60px;
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.25) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        /* Product Cards */
+        .gec-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+        .gec-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 32px -6px rgba(15, 23, 42, 0.12);
+            border-color: #cbd5e1;
+        }
+        .gec-img-wrap {
+            height: 230px;
+            background: #fafafa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .gec-img-wrap img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+        }
+        .gec-card:hover .gec-img-wrap img {
+            transform: scale(1.05);
+        }
+
+        /* Chips & Badges */
+        .gec-tag-verified {
+            background: #ecfdf5;
+            color: #059669;
+            font-size: 0.92rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid #a7f3d0;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .gec-tag-discount {
+            background: #fee2e2;
+            color: #dc2626;
+            font-size: 0.95rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid #fecaca;
+        }
+
+        /* Product Typography & Pricing */
+        .gec-product-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 2.8em;
+            margin-bottom: 8px;
+        }
+        .gec-price-current {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+        .gec-price-original {
+            font-size: 1.05rem;
+            color: #94a3b8;
+            text-decoration: line-through;
+            font-weight: 500;
+        }
+
+        /* Buttons */
+        .btn-gec-buy {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            border-radius: 999px;
+            padding: 10px 20px;
+            font-size: 1.05rem;
+            transition: all 0.15s ease;
+        }
+        .btn-gec-buy:hover {
+            background: linear-gradient(135deg, #0369a1, #075985);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-gec-alert {
+            background: #fff;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 1.02rem;
+            transition: all 0.15s ease;
+        }
+        .btn-gec-alert:hover {
+            background: #f8fafc;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        .btn-gec-edit {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1.5px dashed #86efac;
+            font-weight: 700;
+            border-radius: 999px;
+            padding: 8px 16px;
+            font-size: 1.02rem;
+            transition: all 0.15s ease;
+        }
+        .btn-gec-edit:hover {
+            background: #dcfce7;
+            border-color: #4ade80;
+            color: #14532d;
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+        }
+
+        /* Quick Drop Preset Buttons */
+        .drop-btn {
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            font-size: 0.98rem;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 10px;
+            transition: all 0.15s;
+        }
+        .drop-btn:hover {
+            background: #0284c7;
+            color: #fff;
+            border-color: #0284c7;
+        }
+        .drop-btn-rupee {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+        .drop-btn-rupee:hover {
+            background: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
+        }
+
+        /* Cart Floating Pill */
+        .cart-indicator {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 1.02rem;
+            border-radius: 999px;
+            padding: 8px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ── Desktop Widescreen Layout & Large Typography Overrides ── */
+        @media (min-width: 992px) {
+            .gec-topbar {
+                font-size: 1.02rem !important;
+                padding: 10px 0 !important;
+            }
+            .gec-brand {
+                font-size: 2.1rem !important;
+            }
+            .gec-brand .gec-badge {
+                font-size: 1.18rem !important;
+                padding: 4px 12px !important;
+            }
+            .gec-search-bar {
+                max-width: 680px !important;
+            }
+            .gec-search-bar input {
+                height: 52px !important;
+                font-size: 1.15rem !important;
+                padding-left: 52px !important;
+            }
+            .gec-search-bar .search-icon {
+                font-size: 1.25rem !important;
+                left: 20px !important;
+            }
+            .cart-indicator {
+                font-size: 1.08rem !important;
+                padding: 10px 20px !important;
+            }
+            .gec-category-pill {
+                font-size: 1.1rem !important;
+                padding: 10px 22px !important;
+            }
+            .gec-card {
+                border-radius: 22px !important;
+            }
+            .gec-img-wrap {
+                height: 240px !important;
+            }
+            .gec-product-title {
+                font-size: 1.2rem !important;
+            }
+            .gec-price-current {
+                font-size: 1.75rem !important;
+            }
+            .btn-gec-buy, .btn-gec-alert {
+                font-size: 1.08rem !important;
+                padding: 11px 22px !important;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .gec-search-bar {
+                max-width: 820px !important;
+            }
+            .gec-price-current {
+                font-size: 1.9rem !important;
+            }
+            .gec-img-wrap {
+                height: 260px !important;
+            }
+            .gec-product-title {
+                font-size: 1.25rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ════════════ TOP NOTIFICATION STRIP ════════════ -->
+    <div class="gec-topbar">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span><i class="fas fa-truck-fast text-info me-1"></i>Free Express Shipping across India</span>
+                <span class="mx-2 text-secondary">•</span>
+                <span><i class="fas fa-shield-halved text-success me-1"></i>100% Genuine Direct Store Warranty</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2.5 py-1" style="font-size:0.95rem;">
+                    <i class="fas fa-check-circle me-1"></i>Live in SmartBuy Multi-Platform Comparison
+                </span>
+                <a href="/" class="text-white-50 text-decoration-none hover-white" style="font-size: 0.98rem;">
+                    <i class="fas fa-search me-1 text-info"></i>SmartBuy Comparison
+                </a>
+                <a href="/my-price-alerts" class="text-white-50 text-decoration-none hover-white" style="font-size: 0.98rem;">
+                    <i class="fas fa-bell me-1 text-warning"></i>My Price Alerts
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════ MAIN E-COMMERCE NAVBAR ════════════ -->
+    <nav class="gec-navbar py-2 px-3 px-md-4">
+        <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <a href="/gececom" class="gec-brand" title="GEC ECom Store">
+                    <span class="gec-badge">GEC</span>
+                    <span>ECom</span>
+                    <i class="fas fa-bag-shopping text-info ms-0.5" style="font-size:1.15rem;"></i>
+                </a>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2.5 py-1 d-none d-lg-inline-block small">
+                    Direct E-Commerce Store
+                </span>
+            </div>
+
+            <!-- In-Store Search Bar -->
+            <div class="gec-search-bar d-none d-md-block">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="gecStoreSearchInput" class="form-control" placeholder="Search in GEC ECom... (e.g. Vivo T4, iPhone, Bags, Kettle)" onkeyup="filterStoreProducts(this.value)">
+            </div>
+
+            <!-- Right-hand shopping actions -->
+            <div class="d-flex align-items-center gap-2">
+                <div class="cart-indicator d-none d-sm-inline-flex" id="cartDisplay">
+                    <i class="fas fa-cart-shopping"></i>
+                    <span>Cart (<span id="cartCount">0</span>)</span>
+                </div>
+                <button type="button" class="btn btn-outline-info btn-sm rounded-pill fw-bold px-3 shadow-xs" onclick="copyStoreUrl()" title="Copy GEC ECom Store Link">
+                    <i class="fas fa-link me-1"></i>Copy Store Link
+                </button>
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill fw-bold px-3 shadow-xs" onclick="openAddProductModal()">
+                    <i class="fas fa-plus me-1"></i>Add Product
+                </button>
+                <a href="/" class="btn btn-primary btn-sm rounded-pill fw-bold px-3 shadow-xs">
+                    <i class="fas fa-scale-balanced me-1"></i>SmartBuy
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ════════════ CATEGORY SUBNAV ════════════ -->
+    <div class="gec-subnav">
+        <div class="container-fluid px-4 d-flex align-items-center">
+            <a href="javascript:void(0)" class="gec-category-pill active" onclick="filterByCategory('all', this)"><i class="fas fa-th-large me-1"></i>All Products</a>
+            <a href="javascript:void(0)" class="gec-category-pill" onclick="filterByCategory('mobiles', this)"><i class="fas fa-mobile-screen me-1"></i>Smartphones & 5G</a>
+            <a href="javascript:void(0)" class="gec-category-pill" onclick="filterByCategory('electronics', this)"><i class="fas fa-headphones me-1"></i>Electronics & Audio</a>
+            <a href="javascript:void(0)" class="gec-category-pill" onclick="filterByCategory('bags', this)"><i class="fas fa-suitcase-rolling me-1"></i>Travel & Luggage</a>
+            <a href="javascript:void(0)" class="gec-category-pill" onclick="filterByCategory('kitchen', this)"><i class="fas fa-mug-hot me-1"></i>Home & Kitchen</a>
+            <a href="javascript:void(0)" class="gec-category-pill" onclick="filterByCategory('grocery', this)"><i class="fas fa-apple-whole me-1"></i>Food & Essentials</a>
+        </div>
+    </div>
+
+    <!-- ════════════ MAIN STOREFRONT CONTENT ════════════ -->
+    <main class="container-fluid px-3 px-md-4 py-4">
+
+        <!-- Live Price Update Feedback Toast -->
+        <div id="simFeedbackToast" class="alert alert-success alert-dismissible fade d-none shadow-sm rounded-4 mb-4 border-0" style="background:#ecfdf5; border-left: 5px solid #10b981 !important; color:#065f46;" role="alert">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fas fa-check-circle fs-4 text-success"></i>
+                <div class="flex-grow-1">
+                    <strong id="simToastTitle" class="fs-6">Price Updated!</strong>
+                    <div class="small mt-0.5" id="simToastBody"></div>
+                </div>
+                <a href="/search?q=Vivo+T4" id="simToastCompareBtn" class="btn btn-sm btn-success rounded-pill fw-bold px-3 py-1 shadow-xs text-white">
+                    <i class="fas fa-external-link-alt me-1"></i>Check on SmartBuy Compare
+                </a>
+            </div>
+            <button type="button" class="btn-close" onclick="closeToast()"></button>
+        </div>
+
+        <!-- ════════════ HERO STORE BANNER ════════════ -->
+        <section class="gec-hero">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                        <span class="badge bg-info text-dark fw-bold text-uppercase px-2.5 py-1">
+                            <i class="fas fa-bolt me-1"></i>GEC ECom Direct Deals
+                        </span>
+                        <span class="badge bg-success bg-opacity-25 text-white border border-success border-opacity-50 px-2.5 py-1">
+                            <i class="fas fa-pencil me-1"></i>Interactive Price Editor Active
+                        </span>
+                    </div>
+                    <h2 class="fw-extrabold mb-2" style="font-size:1.85rem; letter-spacing:-0.5px;">
+                        Direct E-Commerce Store with Real-Time Price Editor
+                    </h2>
+                    <p class="text-light opacity-90 small mb-3" style="max-width: 680px; line-height: 1.6;">
+                        Browse normal store items or add custom products. Use the <strong>“✏️ Edit Price”</strong> button on any product to simulate price drops (e.g., <strong>-₹1</strong>, <strong>-5%</strong>, <strong>-10%</strong>, or custom). When you search or compare on <strong>SmartBuy</strong>, GEC ECom appears right alongside <strong>Amazon, Flipkart, and Meesho</strong> with your live updated price!
+                    </p>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <a href="/search?q=Vivo+T4" class="btn btn-light btn-sm rounded-pill fw-bold px-3 py-2 text-dark shadow-sm">
+                            <i class="fas fa-search me-1 text-primary"></i>Test Search "Vivo T4" on SmartBuy
+                        </a>
+                        <button type="button" class="btn btn-outline-light btn-sm rounded-pill fw-semibold px-3 py-2" onclick="openAddProductModal()">
+                            <i class="fas fa-plus me-1"></i>Add New Product to Store
+                        </button>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <div class="bg-black bg-opacity-35 p-3 rounded-4 border border-white border-opacity-15 d-inline-block text-start shadow-sm" style="max-width: 340px;">
+                        <div class="small text-white fw-bold mb-1.5"><i class="fas fa-circle-question text-warning me-1"></i>How It Works:</div>
+                        <ul class="small text-white text-opacity-90 mb-0 ps-3" style="font-size:0.78rem; line-height: 1.55;">
+                            <li>1. GEC ECom products appear in <strong>/search</strong> alongside Amazon, Flipkart, Meesho.</li>
+                            <li>2. Click <strong>“✏️ Edit Price”</strong> below to drop the price.</li>
+                            <li>3. Refresh <strong>/search</strong>: GEC ECom shows the new price & can win <strong>Lowest Price</strong>!</li>
+                            <li>4. Triggers automatic price drop email notifications!</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ════════════ PRODUCT CATALOG ════════════ -->
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 pb-2 border-bottom">
+            <div>
+                <h4 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <i class="fas fa-store text-info"></i>Store Inventory
+                    <span class="badge bg-secondary-subtle text-secondary fs-6 rounded-pill" id="productCountBadge">{{ products|length }}</span>
+                </h4>
+                <span class="text-muted small">All items listed below are live in the GEC ECom catalog and available in SmartBuy comparison</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="d-flex align-items-center gap-1 border bg-white px-2.5 py-1 rounded-pill shadow-xs">
+                    <span class="small text-muted fw-semibold me-1"><i class="fas fa-arrow-down-wide-short me-1"></i>Sort:</span>
+                    <select id="sortDropdown" class="form-select form-select-sm border-0 bg-transparent py-0 shadow-none fw-semibold" style="width:auto; cursor:pointer;" onchange="sortProducts(this.value)">
+                        <option value="default">Featured</option>
+                        <option value="price_low">Price: Low to High</option>
+                        <option value="price_high">Price: High to Low</option>
+                        <option value="discount">Highest Discount</option>
+                    </select>
+                </div>
+
+                {% if not products or products|length < 3 %}
+                <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold shadow-xs" onclick="seedSampleProducts()">
+                    <i class="fas fa-magic me-1"></i>Seed Starter Catalog (Vivo T4, iPhone 15...)
+                </button>
+                {% endif %}
+
+                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 fw-bold shadow-xs" onclick="openAddProductModal()">
+                    <i class="fas fa-plus me-1"></i>Add Product
+                </button>
+            </div>
+        </div>
+
+        {% if products %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-3" id="productsGrid">
+            {% for prod in products %}
+            <div class="col product-col-item"
+                 data-id="{{ prod.id }}"
+                 data-name="{{ prod.product_name|lower }}"
+                 data-price="{{ prod.current_price }}"
+                 data-discount="{{ prod.discount_pct or 0 }}"
+                 data-category="{{ (prod.category or 'mobiles')|lower }}">
+                <div class="gec-card position-relative" id="productCard-{{ prod.id }}">
+
+                    <!-- Product Image & Tag Wrappers -->
+                    <div class="gec-img-wrap">
+                        {% if prod.product_image %}
+                        <img src="{{ prod.product_image }}" alt="{{ prod.product_name }}" onerror="this.src='https://placehold.co/240x220?text=GEC+ECom'">
+                        {% else %}
+                        <img src="https://placehold.co/240x220?text=GEC+ECom" alt="GEC ECom Item">
+                        {% endif %}
+
+                        <!-- Discount Chip -->
+                        {% if prod.is_discounted %}
+                        <span class="position-absolute top-0 start-0 m-2 gec-tag-discount shadow-xs">
+                            <i class="fas fa-arrow-down me-0.5"></i>{{ prod.discount_pct }}% OFF
+                        </span>
+                        {% endif %}
+
+                        <!-- Delete Button -->
+                        <button type="button" class="btn btn-sm btn-light rounded-circle shadow-xs position-absolute top-0 end-0 m-2 border"
+                                title="Remove from GEC ECom" onclick="deleteMockProduct('{{ prod.id }}', '{{ prod.product_name }}')">
+                            <i class="fas fa-trash-alt text-danger" style="font-size:0.75rem;"></i>
+                        </button>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between mb-1.5">
+                            <span class="gec-tag-verified">
+                                <i class="fas fa-check-circle"></i>GEC Verified
+                            </span>
+                            <div class="small text-warning" style="font-size:0.75rem;">
+                                <i class="fas fa-star"></i>
+                                <span class="fw-bold text-dark ms-0.5">{{ prod.rating }}</span>
+                                <span class="text-muted">({{ prod.reviews_count }})</span>
+                            </div>
+                        </div>
+
+                        <!-- Product Title -->
+                        <h6 class="gec-product-title" title="{{ prod.product_name }}">
+                            {{ prod.product_name }}
+                        </h6>
+
+                        <!-- Live Price Block -->
+                        <div class="mb-3">
+                            <div class="d-flex align-items-baseline gap-2">
+                                <span class="gec-price-current" id="displayPrice-{{ prod.id }}">
+                                    {{ prod.formatted_current_price }}
+                                </span>
+                                {% if prod.is_discounted %}
+                                <span class="gec-price-original" id="displayOrig-{{ prod.id }}">
+                                    {{ prod.formatted_original_price }}
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="text-success small fw-medium mt-0.5" style="font-size:0.74rem;">
+                                <i class="fas fa-truck-fast me-1"></i>Free Express Delivery · In Stock
+                            </div>
+                        </div>
+
+                        <!-- Actions Grid -->
+                        <div class="mt-auto d-flex flex-column gap-2">
+                            <!-- 1. Shopper Actions: Buy Now & Set Price Alert -->
+                            <div class="d-flex gap-1.5">
+                                <button type="button" class="btn btn-gec-buy flex-grow-1 d-flex align-items-center justify-content-center gap-1.5"
+                                        onclick="addToCart('{{ prod.product_name }}', '{{ prod.current_price }}')">
+                                    <i class="fas fa-cart-plus"></i>Add to Cart
+                                </button>
+                                <button type="button"
+                                        class="btn btn-gec-alert d-flex align-items-center justify-content-center gap-1"
+                                        onclick="openPriceAlertModal(this)"
+                                        data-product-name="{{ prod.product_name }}"
+                                        data-product-image="{{ prod.product_image }}"
+                                        data-platform="gececom"
+                                        data-current-price="{{ prod.current_price }}"
+                                        data-product-url="{{ prod.amazon_url or ('/gececom#product-' ~ prod.id) }}"
+                                        title="Set Price Alert">
+                                    <i class="fas fa-bell text-warning"></i>
+                                </button>
+                            </div>
+
+                            <!-- 2. Store Price Editor (The Core Simulator & Price Manager) -->
+                            <button type="button"
+                                    class="btn btn-gec-edit w-100 d-flex align-items-center justify-content-center gap-1.5"
+                                    onclick="openEditPriceModal('{{ prod.id }}', '{{ prod.product_name|escape }}', '{{ prod.current_price }}', '{{ prod.formatted_current_price }}')"
+                                    title="Edit price for GEC ECom and compare instantly">
+                                <i class="fas fa-pencil"></i><span>✏️ Edit Price (Simulator)</span>
+                            </button>
+
+                            <!-- 3. Direct Compare on SmartBuy & Copy Link -->
+                            <div class="d-flex gap-1.5">
+                                <a href="/search?url={{ ('/gececom#product-' ~ prod.id)|urlencode }}" class="btn btn-outline-primary btn-sm flex-grow-1 rounded-pill fw-bold d-flex align-items-center justify-content-center gap-1 shadow-xs" style="font-size:0.75rem; padding: 6px 10px;">
+                                    <i class="fas fa-balance-scale"></i>Compare on SmartBuy
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle shadow-xs" onclick="copyProductLink('{{ prod.id }}')" title="Copy Product URL" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-link" style="font-size:0.75rem;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white my-4">
+            <div class="py-4">
+                <i class="fas fa-store-slash text-muted opacity-50 fs-1 mb-3"></i>
+                <h4 class="fw-bold text-dark mb-1">GEC ECom Catalog is Empty</h4>
+                <p class="text-muted small mb-4" style="max-width: 500px; margin: 0 auto;">
+                    Click below to populate standard test products (Vivo T4, iPhone 15, Safari Trolley Bag, etc.) or add your own custom item to compare prices!
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-primary rounded-pill px-4 fw-bold shadow-xs" onclick="seedSampleProducts()">
+                        <i class="fas fa-magic me-1"></i>Seed Starter Catalog
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold" onclick="openAddProductModal()">
+                        <i class="fas fa-plus me-1"></i>Add Custom Product
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </main>
+
+    <!-- ════════════════════ 1. PRICE EDITOR MODAL ════════════════════ -->
+    <div class="modal fade" id="editPriceModal" tabindex="-1" aria-labelledby="editPriceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header border-bottom py-3 px-4" style="background:#f8fafc;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1 rounded-pill">
+                            <i class="fas fa-store me-1"></i>GEC ECom Price Editor
+                        </span>
+                        <h5 class="modal-title fw-bold text-dark mb-0 fs-6" id="editPriceModalLabel">Update Product Price</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="epProductId">
+                    <input type="hidden" id="epCurrentPriceRaw">
+
+                    <!-- Product Heading -->
+                    <div class="d-flex align-items-center gap-2 p-2.5 rounded-3 mb-3" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
+                        <i class="fas fa-box text-primary fs-5"></i>
+                        <div class="overflow-hidden">
+                            <div class="small fw-bold text-dark text-truncate" id="epProductName"></div>
+                            <div class="small text-muted">Current Live Price: <strong class="text-dark" id="epCurrentPriceDisplay"></strong></div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Drop Delta Preset Buttons -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase mb-1" style="font-size:0.75rem;">
+                            <i class="fas fa-bolt text-warning me-1"></i>Quick Drop Presets:
+                        </label>
+                        <div class="d-flex flex-wrap gap-1.5">
+                            <button type="button" class="btn drop-btn drop-btn-rupee" onclick="applyDropDelta(-1)" title="Instant 1-rupee drop simulation">
+                                -₹1 Drop 🎯
+                            </button>
+                            <button type="button" class="btn drop-btn" onclick="applyDropPct(5)">-5%</button>
+                            <button type="button" class="btn drop-btn" onclick="applyDropPct(10)">-10%</button>
+                            <button type="button" class="btn drop-btn" onclick="applyDropPct(15)">-15%</button>
+                            <button type="button" class="btn drop-btn" onclick="applyDropPct(20)">-20%</button>
+                            <button type="button" class="btn drop-btn" onclick="applyDropPct(50)">-50% Mega</button>
+                        </div>
+                    </div>
+
+                    <!-- Direct Price Input -->
+                    <div class="mb-3">
+                        <label for="epNewPriceInput" class="form-label small fw-bold text-secondary text-uppercase mb-1" style="font-size:0.75rem;">
+                            Or Enter New Price Directly (₹):
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light fw-bold text-dark">₹</span>
+                            <input type="number" id="epNewPriceInput" class="form-control form-control-lg fw-bold" min="1" step="1" oninput="calcEditSavings()">
+                        </div>
+                        <div id="epSavingsPreview" class="small fw-semibold mt-1"></div>
+                    </div>
+
+                    <!-- Auto-Trigger Price Alert Option -->
+                    <div class="form-check form-switch p-3 rounded-3 mb-2" style="background:#ecfdf5; border: 1px solid #a7f3d0;">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" role="switch" id="epAutoTriggerCheck" checked>
+                        <label class="form-check-label small fw-bold text-dark" for="epAutoTriggerCheck">
+                            <i class="fas fa-paper-plane text-success me-1"></i>Auto-check Price Alerts & Dispatch Email
+                        </label>
+                        <div class="small text-muted ms-4" style="font-size:0.75rem;">
+                            If this price meets a user's price drop target, email notifications and SmartBuy Inbox alerts will be triggered immediately.
+                        </div>
+                    </div>
+
+                    <div id="epErrorAlert" class="alert alert-danger small py-2 d-none rounded-3 mb-0"></div>
+                </div>
+                <div class="modal-footer border-top py-2.5 px-4 bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="epSubmitBtn" class="btn btn-success btn-sm rounded-pill fw-bold px-4 shadow-sm" onclick="submitPriceUpdate()">
+                        <i class="fas fa-check me-1"></i>Save Price & Update 🚀
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════ 2. ADD PRODUCT MODAL ════════════════════ -->
+    <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header border-bottom py-3 px-4" style="background:#f8fafc;">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-plus-circle text-primary fs-5"></i>
+                        <h5 class="modal-title fw-bold text-dark mb-0 fs-6" id="addProductModalLabel">Add Product to GEC ECom</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary text-uppercase mb-1" style="font-size:0.75rem;">
+                            Optional: Auto-Fill from Amazon Product Link
+                        </label>
+                        <div class="input-group">
+                            <input type="url" id="apAmazonUrl" class="form-control form-control-sm" placeholder="https://www.amazon.in/dp/B0D1VIVOT4...">
+                            <button class="btn btn-outline-primary btn-sm fw-semibold" type="button" onclick="autofillFromAmazonUrl()">
+                                <i class="fas fa-wand-magic-sparkles me-1"></i>Autofill
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="apName" class="form-label small fw-bold text-secondary text-uppercase mb-1" style="font-size:0.75rem;">
+                            Product Name <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" id="apName" class="form-control" placeholder="e.g. Vivo T4 5G (8GB RAM, 128GB Storage)">
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label for="apPrice" class="form-label small fw-bold text-secondary text-uppercase mb-1" style="font-size:0.75rem;">
+                                Selling Price (₹) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" id="apPrice" class="form-control fw-bold" placeholder="21999" min="1">
+                        </div>
+                        <div class="col-6">
+                            <label for="apOrigPrice" class="form-label small fw-bold text-secondary text-uppercase mb-1" style="font-size:0.75rem;">
+                                MRP / List Price (₹)
+                            </label>
+                            <input type="number" id="apOrigPrice" class="form-control" placeholder="24999" min="1">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="apImage" class="form-label small fw-bold text-secondary text-uppercase mb-1" style="font-size:0.75rem;">
+                            Product Image URL
+                        </label>
+                        <input type="url" id="apImage" class="form-control form-control-sm" placeholder="https://m.media-amazon.com/images/I/...">
+                    </div>
+
+                    <div id="apErrorAlert" class="alert alert-danger small py-2 d-none rounded-3 mb-0"></div>
+                </div>
+                <div class="modal-footer border-top py-2.5 px-4 bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="apSubmitBtn" class="btn btn-primary btn-sm rounded-pill fw-bold px-4 shadow-sm" onclick="submitNewProduct()">
+                        <i class="fas fa-plus me-1"></i>Add to GEC ECom
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════ 3. SET PRICE ALERT MODAL ════════════════════ -->
+    <div class="modal fade" id="priceAlertModal" tabindex="-1" aria-labelledby="priceAlertModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+                <div class="modal-header border-bottom py-3.5 px-4 px-md-5" style="background:#f8fafc;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-warning bg-opacity-15 text-warning d-flex align-items-center justify-content-center shadow-xs" style="width: 48px; height: 48px; font-size: 1.4rem;">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title fw-bold text-dark mb-0" id="priceAlertModalLabel" style="font-size: 1.6rem;">Set Price Alert</h4>
+                            <div class="text-muted" style="font-size: 0.98rem;">Get immediate email alerts as soon as this item drops to your target price</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="transform: scale(1.3);"></button>
+                </div>
+                <div class="modal-body p-4 p-md-5 bg-white">
+                    <input type="hidden" id="paModalProductName">
+                    <input type="hidden" id="paModalProductUrl">
+                    <input type="hidden" id="paModalPlatformInput">
+                    <input type="hidden" id="paModalCurrentPriceInput">
+                    <input type="hidden" id="paModalProductImage">
+
+                    <div class="d-flex align-items-center gap-3 p-3 rounded-4 mb-4 bg-light border" style="padding: 18px 22px !important;">
+                        <i class="fas fa-bag-shopping text-primary" style="font-size: 2rem;"></i>
+                        <div class="overflow-hidden flex-grow-1">
+                            <h5 class="fw-bold text-dark text-truncate mb-1" id="paModalTitle" style="font-size: 1.25rem;"></h5>
+                            <div class="text-muted" style="font-size: 1.05rem;">Current Price: <strong class="text-success fw-bold" id="paModalDisplayCurrentPrice" style="font-size: 1.45rem;"></strong></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="paModalTargetPrice" class="form-label fw-bold text-dark mb-2" style="font-size: 1.15rem;">
+                            Target Price (₹) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light fw-bold text-success px-3" style="font-size: 1.35rem;">₹</span>
+                            <input type="number" id="paModalTargetPrice" class="form-control fw-bold ps-2" placeholder="e.g. 19999" min="1" step="1" style="font-size: 1.35rem; height: 56px;">
+                        </div>
+                        <div class="form-text text-muted mt-2" style="font-size: 0.95rem;">You will receive an automated email notification as soon as the price drops to or below this target.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="paModalEmail" class="form-label fw-bold text-dark mb-2" style="font-size: 1.15rem;">
+                            Email Address <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted px-3" style="font-size: 1.2rem;"><i class="fas fa-envelope"></i></span>
+                            <input type="email" id="paModalEmail" class="form-control ps-2" value="{{ current_user.email if current_user else '' }}" placeholder="you@example.com" style="font-size: 1.18rem; height: 54px;">
+                        </div>
+                    </div>
+
+                    <div id="paModalErrorAlert" class="alert alert-danger py-3 px-4 d-none rounded-3 mb-0" style="font-size: 1.08rem;"></div>
+                    <div id="paModalSuccessAlert" class="alert alert-success py-3 px-4 d-none rounded-3 mb-0" style="font-size: 1.08rem;"></div>
+                </div>
+                <div class="modal-footer border-top py-3 px-4 px-md-5 bg-light d-flex justify-content-between" id="paModalFooter">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2" data-bs-dismiss="modal" style="font-size: 1.12rem;">Cancel</button>
+                    <button type="button" id="paModalSubmitBtn" class="btn btn-success rounded-pill fw-bold px-5 py-2.5 shadow-sm" onclick="submitPriceAlert()" style="font-size: 1.22rem;">
+                        <i class="fas fa-bell me-2"></i>Create Alert
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // ════════════════════ PRICE EDITOR LOGIC ════════════════════
+    function openEditPriceModal(id, name, currentPrice, formattedPrice) {
+        document.getElementById('epProductId').value = id;
+        document.getElementById('epProductName').innerText = name;
+        document.getElementById('epCurrentPriceDisplay').innerText = formattedPrice;
+        document.getElementById('epCurrentPriceRaw').value = currentPrice;
+        document.getElementById('epNewPriceInput').value = currentPrice > 1 ? (currentPrice - 1) : 1;
+        document.getElementById('epErrorAlert').classList.add('d-none');
+        calcEditSavings();
+        const m = new bootstrap.Modal(document.getElementById('editPriceModal'));
+        m.show();
+    }
+
+    function applyDropDelta(delta) {
+        const cur = parseInt(document.getElementById('epCurrentPriceRaw').value) || 0;
+        const newPrice = Math.max(1, cur + delta);
+        document.getElementById('epNewPriceInput').value = newPrice;
+        calcEditSavings();
+    }
+
+    function applyDropPct(pct) {
+        const cur = parseInt(document.getElementById('epCurrentPriceRaw').value) || 0;
+        const newPrice = Math.max(1, Math.round(cur * (1 - pct / 100)));
+        document.getElementById('epNewPriceInput').value = newPrice;
+        calcEditSavings();
+    }
+
+    function calcEditSavings() {
+        const cur = parseInt(document.getElementById('epCurrentPriceRaw').value) || 0;
+        const target = parseInt(document.getElementById('epNewPriceInput').value) || 0;
+        const preview = document.getElementById('epSavingsPreview');
+
+        if (cur > 0 && target > 0) {
+            const diff = cur - target;
+            if (diff > 0) {
+                const pct = ((diff / cur) * 100).toFixed(1);
+                preview.innerHTML = `<span class="text-danger"><i class="fas fa-arrow-down me-1"></i>Price drops by ₹${diff.toLocaleString('en-IN')} (-${pct}%)</span>`;
+            } else if (diff === 0) {
+                preview.innerHTML = `<span class="text-muted">No price change (0% drop).</span>`;
+            } else {
+                preview.innerHTML = `<span class="text-primary"><i class="fas fa-arrow-up me-1"></i>Price increases by ₹${(-diff).toLocaleString('en-IN')}</span>`;
+            }
+        } else {
+            preview.innerHTML = '';
+        }
+    }
+
+    async function submitPriceUpdate() {
+        const id = document.getElementById('epProductId').value;
+        const newPrice = parseInt(document.getElementById('epNewPriceInput').value) || 0;
+        const trigger = document.getElementById('epAutoTriggerCheck').checked;
+        const errEl = document.getElementById('epErrorAlert');
+        const btn = document.getElementById('epSubmitBtn');
+
+        if (newPrice <= 0) {
+            errEl.innerText = "Please enter a valid price greater than ₹0.";
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Updating...';
+
+        try {
+            const resp = await fetch(`/api/gececom/products/${id}/price`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ new_price: newPrice, trigger_check: trigger })
+            });
+            const data = await resp.json();
+
+            if (resp.ok && data.success) {
+                // Update live card on screen
+                const displayEl = document.getElementById(`displayPrice-${id}`);
+                if (displayEl) displayEl.innerText = data.formatted_new_price;
+
+                bootstrap.Modal.getInstance(document.getElementById('editPriceModal')).hide();
+
+                // Show toast notification
+                const toast = document.getElementById('simFeedbackToast');
+                document.getElementById('simToastTitle').innerText = "Price Updated Successfully!";
+                let toastMsg = `GEC ECom live store price updated to ${data.formatted_new_price}.`;
+                if (data.trigger_results && data.trigger_results.triggered > 0) {
+                    toastMsg += ` 🎯 TARGET REACHED! ${data.trigger_results.triggered} price alert(s) triggered and email notification dispatched!`;
+                } else if (trigger) {
+                    toastMsg += ` Evaluated active price drop alerts for this product.`;
+                }
+                document.getElementById('simToastBody').innerText = toastMsg;
+                toast.classList.remove('d-none');
+                toast.classList.add('show');
+            } else {
+                errEl.innerText = data.message || "Failed to update price.";
+                errEl.classList.remove('d-none');
+            }
+        } catch (e) {
+            errEl.innerText = `Network error: ${e.message}`;
+            errEl.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check me-1"></i>Save Price & Update 🚀';
+        }
+    }
+
+    function closeToast() {
+        const toast = document.getElementById('simFeedbackToast');
+        toast.classList.remove('show');
+        toast.classList.add('d-none');
+    }
+
+    // ════════════════════ ADD PRODUCT LOGIC ════════════════════
+    function openAddProductModal() {
+        document.getElementById('apAmazonUrl').value = '';
+        document.getElementById('apName').value = '';
+        document.getElementById('apPrice').value = '';
+        document.getElementById('apOrigPrice').value = '';
+        document.getElementById('apImage').value = '';
+        document.getElementById('apErrorAlert').classList.add('d-none');
+        const m = new bootstrap.Modal(document.getElementById('addProductModal'));
+        m.show();
+    }
+
+    async function autofillFromAmazonUrl() {
+        const url = document.getElementById('apAmazonUrl').value.trim();
+        if (!url) {
+            alert('Please enter an Amazon product URL first.');
+            return;
+        }
+        try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/');
+            if (pathParts[1] && pathParts[1] !== 'dp' && pathParts[1] !== 'gp') {
+                const slugTitle = pathParts[1].replace(/-/g, ' ');
+                if (slugTitle.length > 3) {
+                    document.getElementById('apName').value = slugTitle.replace(/\b\w/g, l => l.toUpperCase());
+                }
+            }
+        } catch (e) {}
+    }
+
+    async function submitNewProduct() {
+        const name = document.getElementById('apName').value.trim();
+        const price = parseInt(document.getElementById('apPrice').value) || 0;
+        const origPrice = parseInt(document.getElementById('apOrigPrice').value) || price;
+        const amazonUrl = document.getElementById('apAmazonUrl').value.trim();
+        const image = document.getElementById('apImage').value.trim();
+        const errEl = document.getElementById('apErrorAlert');
+        const btn = document.getElementById('apSubmitBtn');
+
+        if (!name) {
+            errEl.innerText = "Please enter a product name.";
+            errEl.classList.remove('d-none');
+            return;
+        }
+        if (price <= 0) {
+            errEl.innerText = "Please enter a valid price greater than ₹0.";
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+        try {
+            const resp = await fetch('/api/gececom/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    price: price,
+                    original_price: origPrice,
+                    amazon_url: amazonUrl,
+                    image: image
+                })
+            });
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                window.location.reload();
+            } else {
+                errEl.innerText = data.message || "Failed to add product.";
+                errEl.classList.remove('d-none');
+            }
+        } catch (e) {
+            errEl.innerText = `Network error: ${e.message}`;
+            errEl.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plus me-1"></i>Add to GEC ECom';
+        }
+    }
+
+    async function deleteMockProduct(id, name) {
+        if (!confirm(`Are you sure you want to remove '${name}' from GEC ECom?`)) return;
+        try {
+            const resp = await fetch(`/api/gececom/products/${id}`, { method: 'DELETE' });
+            if (resp.ok) {
+                const card = document.getElementById(`productCard-${id}`);
+                if (card) card.closest('.product-col-item').remove();
+            }
+        } catch (e) {
+            alert('Failed to delete product.');
+        }
+    }
+
+    async function seedSampleProducts() {
+        const samples = [
+            {
+                name: "Vivo T4 5G (8GB RAM, 128GB Storage, Titanium Gold)",
+                amazon_url: "https://www.amazon.in/dp/B0D1VIVOT4",
+                image: "https://m.media-amazon.com/images/I/71Y8rh450HL._SL1500_.jpg",
+                price: 21999,
+                original_price: 25000,
+                rating: 4.4,
+                reviews_count: 320
+            },
+            {
+                name: "Apple iPhone 15 (128 GB) - Black",
+                amazon_url: "https://www.amazon.in/dp/B0CHX1W1XY",
+                image: "https://m.media-amazon.com/images/I/71657TiFeHL._SL1500_.jpg",
+                price: 65999,
+                original_price: 79900,
+                rating: 4.6,
+                reviews_count: 1450
+            },
+            {
+                name: "Samsung Galaxy S24 5G (8GB RAM, 256GB Storage)",
+                amazon_url: "https://www.amazon.in/dp/B0CS5X6R2F",
+                image: "https://m.media-amazon.com/images/I/717Qo4MH97L._SL1500_.jpg",
+                price: 69999,
+                original_price: 79999,
+                rating: 4.5,
+                reviews_count: 890
+            },
+            {
+                name: "boAt Rockerz 450 Bluetooth On Ear Headphones",
+                amazon_url: "https://www.amazon.in/dp/B07PR1CL3S",
+                image: "https://m.media-amazon.com/images/I/51xxA+6E+xL._SL1500_.jpg",
+                price: 1499,
+                original_price: 3990,
+                rating: 4.2,
+                reviews_count: 8520
+            },
+            {
+                name: "Safari Sawari 55cm Cabin Trolley Bag",
+                amazon_url: "https://www.amazon.in/dp/B0D5XYZSAF",
+                image: "https://m.media-amazon.com/images/I/61k1qV6W5oL._SL1200_.jpg",
+                price: 1899,
+                original_price: 6499,
+                rating: 4.3,
+                reviews_count: 640
+            },
+            {
+                name: "Pigeon by Stovekraft 1.5L Electric Kettle",
+                amazon_url: "https://www.amazon.in/dp/B07WMS7TWB",
+                image: "https://m.media-amazon.com/images/I/51Q1nAepVAL._SL1080_.jpg",
+                price: 549,
+                original_price: 1245,
+                rating: 4.1,
+                reviews_count: 4200
+            }
+        ];
+
+        for (const item of samples) {
+            await fetch('/api/gececom/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(item)
+            });
+        }
+        window.location.reload();
+    }
+
+    // ════════════════════ PRICE ALERT MODAL LOGIC ════════════════════
+    function openPriceAlertModal(btn) {
+        const productName = btn.getAttribute('data-product-name') || 'GEC ECom Product';
+        const productImage = btn.getAttribute('data-product-image') || '';
+        const platform = (btn.getAttribute('data-platform') || 'gececom').trim();
+        const currentPriceRaw = btn.getAttribute('data-current-price') || '0';
+        const productUrl = btn.getAttribute('data-product-url') || '';
+
+        const numPrice = parseInt(String(currentPriceRaw).replace(/[^0-9]/g, '')) || 0;
+
+        document.getElementById('paModalErrorAlert').classList.add('d-none');
+        document.getElementById('paModalSuccessAlert').classList.add('d-none');
+        document.getElementById('paModalFooter').style.display = 'flex';
+        document.getElementById('paModalSubmitBtn').disabled = false;
+        document.getElementById('paModalSubmitBtn').innerHTML = '<i class="fas fa-bell me-1.5"></i>Create Alert';
+
+        document.getElementById('paModalProductName').value = productName;
+        document.getElementById('paModalProductUrl').value = productUrl;
+        document.getElementById('paModalPlatformInput').value = platform;
+        document.getElementById('paModalCurrentPriceInput').value = numPrice;
+        document.getElementById('paModalProductImage').value = productImage;
+
+        document.getElementById('paModalTitle').innerText = productName;
+        document.getElementById('paModalDisplayCurrentPrice').innerText = '₹' + numPrice.toLocaleString('en-IN');
+        document.getElementById('paModalTargetPrice').value = numPrice > 1 ? (numPrice - 1) : 1;
+
+        const modal = new bootstrap.Modal(document.getElementById('priceAlertModal'));
+        modal.show();
+    }
+
+    async function submitPriceAlert() {
+        const name = document.getElementById('paModalProductName').value;
+        const url = document.getElementById('paModalProductUrl').value;
+        const platform = document.getElementById('paModalPlatformInput').value;
+        const currentPrice = parseInt(document.getElementById('paModalCurrentPriceInput').value) || 0;
+        const targetPrice = parseInt(document.getElementById('paModalTargetPrice').value) || 0;
+        const email = document.getElementById('paModalEmail').value.trim();
+        const image = document.getElementById('paModalProductImage').value;
+
+        const errEl = document.getElementById('paModalErrorAlert');
+        const succEl = document.getElementById('paModalSuccessAlert');
+        const submitBtn = document.getElementById('paModalSubmitBtn');
+
+        errEl.classList.add('d-none');
+        succEl.classList.add('d-none');
+
+        if (!email || !email.includes('@')) {
+            errEl.innerText = "Please enter a valid email address.";
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        if (targetPrice <= 0) {
+            errEl.innerText = "Please enter a target price greater than ₹0.";
+            errEl.classList.remove('d-none');
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1.5"></i>Saving...';
+
+        try {
+            const resp = await fetch('/api/price-alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product_name: name,
+                    product_url: url,
+                    platform: platform,
+                    current_price: currentPrice,
+                    target_price: targetPrice,
+                    email: email,
+                    product_image: image
+                })
+            });
+
+            const data = await resp.json();
+            if (resp.ok && data.success) {
+                succEl.innerHTML = `<i class="fas fa-check-circle me-1"></i>${data.message || 'Price alert set! You will be emailed when the price drops.'}`;
+                succEl.classList.remove('d-none');
+                document.getElementById('paModalFooter').style.display = 'none';
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('priceAlertModal')).hide();
+                }, 2000);
+            } else {
+                errEl.innerText = data.message || "Failed to set price alert.";
+                errEl.classList.remove('d-none');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-bell me-1.5"></i>Create Alert';
+            }
+        } catch (e) {
+            errEl.innerText = `Network error: ${e.message}`;
+            errEl.classList.remove('d-none');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-bell me-1.5"></i>Create Alert';
+        }
+    }
+
+    // ════════════════════ CART & STORE SEARCH/FILTER ════════════════════
+    let cartTotalItems = 0;
+    function addToCart(title, price) {
+        cartTotalItems += 1;
+        document.getElementById('cartCount').innerText = cartTotalItems;
+        const toast = document.getElementById('simFeedbackToast');
+        document.getElementById('simToastTitle').innerText = "Added to Cart!";
+        document.getElementById('simToastBody').innerText = `Added '${title}' to your GEC ECom cart at ₹${Number(price).toLocaleString('en-IN')}.`;
+        toast.classList.remove('d-none');
+        toast.classList.add('show');
+    }
+
+    function filterStoreProducts(query) {
+        const q = query.toLowerCase().trim();
+        const items = document.querySelectorAll('.product-col-item');
+        let count = 0;
+        items.forEach(el => {
+            const name = el.getAttribute('data-name') || '';
+            if (!q || name.includes(q)) {
+                el.style.display = '';
+                count++;
+            } else {
+                el.style.display = 'none';
+            }
+        });
+        document.getElementById('productCountBadge').innerText = count;
+    }
+
+    function filterByCategory(cat, pill) {
+        document.querySelectorAll('.gec-category-pill').forEach(p => p.classList.remove('active'));
+        if (pill) pill.classList.add('active');
+
+        const items = document.querySelectorAll('.product-col-item');
+        let count = 0;
+        items.forEach(el => {
+            const pCat = el.getAttribute('data-category') || '';
+            const pName = el.getAttribute('data-name') || '';
+            if (cat === 'all' || pCat.includes(cat) || pName.includes(cat)) {
+                el.style.display = '';
+                count++;
+            } else {
+                el.style.display = 'none';
+            }
+        });
+        document.getElementById('productCountBadge').innerText = count;
+    }
+
+    function sortProducts(criteria) {
+        const grid = document.getElementById('productsGrid');
+        if (!grid) return;
+        const items = Array.from(grid.querySelectorAll('.product-col-item'));
+        items.sort((a, b) => {
+            const priceA = parseInt(a.getAttribute('data-price')) || 0;
+            const priceB = parseInt(b.getAttribute('data-price')) || 0;
+            const discA = parseInt(a.getAttribute('data-discount')) || 0;
+            const discB = parseInt(b.getAttribute('data-discount')) || 0;
+
+            if (criteria === 'price_low') return priceA - priceB;
+            if (criteria === 'price_high') return priceB - priceA;
+            if (criteria === 'discount') return discB - discA;
+            return 0;
+        });
+        items.forEach(el => grid.appendChild(el));
+    }
+
+    function copyProductLink(prodId) {
+        const fullUrl = window.location.origin + '/gececom#product-' + prodId;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                alert('Product URL copied to clipboard:\n' + fullUrl);
+            }).catch(() => {
+                prompt('Copy this product link:', fullUrl);
+            });
+        } else {
+            prompt('Copy this product link:', fullUrl);
+        }
+    }
+
+    function copyStoreUrl() {
+        const storeUrl = window.location.origin + '/gececom';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(storeUrl).then(() => {
+                alert('GEC ECom website link copied to clipboard:\n' + storeUrl);
+            }).catch(() => {
+                prompt('Copy GEC ECom link:', storeUrl);
+            });
+        } else {
+            prompt('Copy GEC ECom link:', storeUrl);
+        }
+    }
+    </script>
+</body>
+</html>

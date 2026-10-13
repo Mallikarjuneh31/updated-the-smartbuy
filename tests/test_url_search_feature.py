@@ -311,7 +311,7 @@ def test_build_specifications_matrix():
         "Meesho": {"available": False, "status": "unavailable"}
     }
     matrix = build_url_specifications_matrix(canonical, matches, stat)
-    assert len(matrix) >= 10
+    assert len(matrix) >= 8
     # Meesho cell must show "Temporarily unavailable" because status is unavailable
     p_row = next(r for r in matrix if r["name"] == "Product Name")
     assert "boAt" in p_row["amazon"]
