@@ -362,13 +362,68 @@ async def check_all_alerts_endpoint():
 app.include_router(router)
 
 
+# ════════════════════ AI PRICE PREDICTION ROUTER ════════════════════
+
+prediction_router = APIRouter(tags=["AI Price Prediction"])
+
+
+@prediction_router.get(
+    "/price-prediction",
+    summary="7-Day AI Price Prediction via Linear Regression",
+    description="Forecasts next 7 days prices separately for Amazon, Flipkart, Meesho, and GEC E-Commerce based on historical price observations in MongoDB."
+)
+@prediction_router.get(
+    "/api/price-prediction",
+    summary="7-Day AI Price Prediction (API alias)",
+    include_in_schema=False
+)
+async def price_prediction_endpoint(
+    query: Optional[str] = Query(None, description="Search keyword e.g. 'Vivo T4'"),
+    product_name: Optional[str] = Query(None, description="Product title"),
+    platform: Optional[str] = Query(None, description="Optional marketplace filter: amazon, flipkart, meesho, gec")
+):
+    from services.price_prediction_service import get_marketplace_7d_predictions
+    q = (query or product_name or "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="Either 'query' or 'product_name' query parameter is required.")
+
+    predictions = get_marketplace_7d_predictions(query=q, product_name=product_name or q)
+    if platform:
+        plat_clean = platform.strip().lower()
+        if plat_clean not in predictions.get("marketplaces", {}):
+            raise HTTPException(status_code=404, detail=f"Marketplace '{platform}' not supported. Choose from amazon, flipkart, meesho, gec.")
+        predictions["marketplaces"] = {plat_clean: predictions["marketplaces"][plat_clean]}
+
+    return predictions
+
+
+@prediction_router.post(
+    "/price-prediction/record",
+    summary="Record live price observation to MongoDB price_history",
+    status_code=status.HTTP_201_CREATED
+)
+async def record_price_endpoint(
+    payload: Dict[str, Any]
+):
+    from services.price_prediction_service import record_search_prices_to_history
+    query = payload.get("query") or payload.get("product_name") or ""
+    platform_data = payload.get("platform_data") or payload.get("products") or {}
+    if not query:
+        raise HTTPException(status_code=400, detail="'query' or 'product_name' is required.")
+    res = record_search_prices_to_history(query=query, platform_data=platform_data)
+    return {"success": True, "recorded": res}
+
+
+app.include_router(prediction_router)
+
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     """FastAPI Health & Database status check."""
     db_ok = database.db is not None
     return {
         "status": "online",
-        "service": "SmartBuy Price Alert API",
+        "service": "SmartBuy Price Alert & AI Prediction API",
         "database_connected": db_ok,
         "time": datetime.now().isoformat()
     }

@@ -217,6 +217,13 @@ def process_results(query: str, raw_results: dict,
     except Exception:
         pass
 
+    # Record actual prices from Amazon, Flipkart, Meesho, and GEC with timestamps in MongoDB
+    try:
+        from services.price_prediction_service import record_search_prices_to_history
+        record_search_prices_to_history(query, pipeline_data.get("best_match_per_platform") or platform_results)
+    except Exception as e:
+        logger.debug(f"[PricePrediction] Could not record search prices to history: {e}")
+
     # Apply Match Scoring & Ranking if filters provided
     if filter_params:
         from search.filters import score_and_rank_products

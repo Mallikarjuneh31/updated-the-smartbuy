@@ -1203,9 +1203,24 @@ def search():
         from search.specs_extractor import compute_marketplace_statuses
         url_mp_status = compute_marketplace_statuses(matches, comp_result.get('platform_status', {}))
 
+        from services.price_prediction_service import get_marketplace_7d_predictions, record_search_prices_to_history
+        url_prices = {}
+        for p_k, p_it in (best_per_plat or matches).items():
+            if isinstance(p_it, dict) and (p_it.get('price_num') or p_it.get('price')):
+                try:
+                    url_prices[p_k.lower()] = float(p_it.get('price_num') or p_it.get('price'))
+                except Exception:
+                    pass
+        try:
+            record_search_prices_to_history(p_name, best_per_plat or matches)
+        except Exception:
+            pass
+        url_price_prediction = get_marketplace_7d_predictions(query=p_name, current_prices=url_prices)
+
         return render_template(
             'results.html',
             is_url_search=True,
+            price_prediction=url_price_prediction,
             searched_url=url_param,
             source_platform=comp_result.get('source_platform'),
             source_platform_name=comp_result.get('source_platform_name'),
@@ -1405,11 +1420,23 @@ def search():
                 search_id
             )
 
+    from services.price_prediction_service import get_marketplace_7d_predictions
+    curr_prices = {}
+    b_per_p = processed.get('best_per_platform') or {}
+    for p_k, p_it in b_per_p.items():
+        if isinstance(p_it, dict) and (p_it.get('price_num') or p_it.get('price')):
+            try:
+                curr_prices[p_k.lower()] = float(p_it.get('price_num') or p_it.get('price'))
+            except Exception:
+                pass
+    keyword_price_prediction = get_marketplace_7d_predictions(query=query, current_prices=curr_prices)
+
     render_data = {
         "query": query,
         "filter_params": filter_params,
         "price_range": price_range,
         "min_rating": min_rating,
+        "price_prediction": keyword_price_prediction,
         **processed
     }
 
@@ -2099,4 +2126,28 @@ def delete_gececom_product_api(product_id):
     """DELETE /api/gececom/products/{id} - Remove product from GEC ECom catalog."""
     ok, msg = delete_gececom_product(product_id)
     return jsonify({"success": ok, "message": msg}), (200 if ok else 400)
+
+
+# ════════════════════ AI PRICE PREDICTION ENDPOINT ════════════════════
+
+@api_bp.route('/price-prediction', methods=['GET'])
+@api_bp.route('/api/price-prediction', methods=['GET'])
+def api_price_prediction():
+    """
+    Retrieve 7-day Linear Regression AI price prediction separately for
+    Amazon, Flipkart, Meesho, and GEC E-Commerce based on historical MongoDB price observations.
+    """
+    q = request.args.get('query', request.args.get('q', request.args.get('product_name', ''))).strip()
+    if not q:
+        return jsonify({"success": False, "message": "'query' parameter is required."}), 400
+
+    from services.price_prediction_service import get_marketplace_7d_predictions
+    platform = request.args.get('platform', '').strip().lower()
+    predictions = get_marketplace_7d_predictions(query=q)
+
+    if platform and platform in predictions.get("marketplaces", {}):
+        predictions["marketplaces"] = {platform: predictions["marketplaces"][platform]}
+
+    return jsonify(predictions), 200
+
 

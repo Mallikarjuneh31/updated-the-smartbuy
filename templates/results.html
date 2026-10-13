@@ -8,6 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for Interactive AI Price Prediction Graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* ── Sort Tabs ── */
         .sort-tabs {
@@ -1228,6 +1230,318 @@
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
+
+            <!-- ════ 🤖 7-DAY AI PRICE PREDICTION SYSTEM (LINEAR REGRESSION) ════ -->
+            {% if price_prediction %}
+            <div class="card border-0 shadow-sm glass-card mb-4 rounded-4 p-4 position-relative overflow-hidden" id="aiPricePredictionSection" style="background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95)); border: 1px solid rgba(226,232,240,0.8) !important;">
+                <!-- Header & Meta -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-3 border-bottom border-secondary border-opacity-10">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge rounded-pill px-3 py-1.5 fw-bold text-white shadow-xs" style="background: linear-gradient(135deg, #4f46e5, #06b6d4);">
+                                <i class="fas fa-robot me-1.5"></i>AI Linear Regression
+                            </span>
+                            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                                7-Day Price Prediction &amp; Trend Forecast
+                            </h5>
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Trained on real chronological price observations in MongoDB across <strong>Amazon, Flipkart, Meesho, and GEC E-Commerce</strong>. Forecasts prices for the next 7 days.
+                        </p>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        {% if price_prediction.best_7d_deal %}
+                        <div class="d-none d-md-flex align-items-center gap-2 bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1.5 small fw-semibold">
+                            <i class="fas fa-trophy text-warning"></i>
+                            Lowest 7-Day Forecast: <strong class="text-success">₹{{ "{:,.0f}".format(price_prediction.best_7d_deal.predicted_price) }}</strong> on {{ price_prediction.best_7d_deal.platform }}
+                        </div>
+                        {% endif %}
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center gap-1.5 shadow-xs" id="btnRefreshPrediction" onclick="refreshFastApiPrediction()">
+                            <i class="fas fa-bolt text-warning" id="refreshFastApiIcon"></i>
+                            <span id="refreshFastApiText">Refresh via FastAPI</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4-Marketplace Stat Cards -->
+                <div class="row g-3 mb-4" id="predictionCardsRow">
+                    {% for mp_key in ('amazon', 'flipkart', 'meesho', 'gec') %}
+                        {% set mp_data = price_prediction.marketplaces.get(mp_key, {}) %}
+                        {% set plat_name = mp_data.platform_name or mp_key|capitalize %}
+                        {% set plat_color = mp_data.colors.primary if mp_data.colors else '#64748b' %}
+
+                        <div class="col-md-6 col-lg-3">
+                            <div class="card h-100 border p-3 rounded-3 shadow-xs bg-white position-relative" style="border-top: 4px solid {{ plat_color }} !important;">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
+                                        <span class="badge rounded-circle p-1" style="background: {{ plat_color }}; width: 10px; height: 10px; display: inline-block;"></span>
+                                        {{ plat_name }}
+                                    </span>
+                                    {% if mp_data.sufficient_data %}
+                                        {% if mp_data.trend == 'falling' %}
+                                        <span class="badge bg-success bg-opacity-15 text-success rounded-pill px-2.5 py-1 small fw-semibold">
+                                            <i class="fas fa-arrow-trend-down me-1"></i>Drop Expected
+                                        </span>
+                                        {% elif mp_data.trend == 'rising' %}
+                                        <span class="badge bg-danger bg-opacity-15 text-danger rounded-pill px-2.5 py-1 small fw-semibold">
+                                            <i class="fas fa-arrow-trend-up me-1"></i>Rise Expected
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary bg-opacity-15 text-secondary rounded-pill px-2.5 py-1 small fw-semibold">
+                                            <i class="fas fa-minus me-1"></i>Likely Stable
+                                        </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-warning bg-opacity-20 text-warning-emphasis border border-warning border-opacity-25 rounded-pill px-2 py-0.5 small" style="font-size: 0.72rem;">
+                                            <i class="fas fa-hourglass-half me-1"></i>Insufficient History
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="row g-2 mb-2">
+                                    <div class="col-6">
+                                        <div class="text-muted" style="font-size: 0.74rem;">Current Price</div>
+                                        <div class="fw-bold fs-6 text-dark">
+                                            {% if mp_data.current_price %}
+                                                ₹{{ "{:,.0f}".format(mp_data.current_price) }}
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted" style="font-size: 0.74rem;">Day +7 Forecast</div>
+                                        <div class="fw-bold fs-6 {% if mp_data.sufficient_data %}{% if mp_data.trend == 'falling' %}text-success{% elif mp_data.trend == 'rising' %}text-danger{% else %}text-primary{% endif %}{% else %}text-muted{% endif %}">
+                                            {% if mp_data.sufficient_data and mp_data.predicted_7d_price %}
+                                                ₹{{ "{:,.0f}".format(mp_data.predicted_7d_price) }}
+                                            {% else %}
+                                                <span class="text-muted small">Not Available</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {% if mp_data.sufficient_data %}
+                                    <div class="p-2 rounded-2 bg-light border border-light-subtle small mt-auto" style="font-size: 0.76rem;">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="text-muted">7-Day Change:</span>
+                                            <span class="fw-bold {% if mp_data.price_change_7d < 0 %}text-success{% elif mp_data.price_change_7d > 0 %}text-danger{% else %}text-secondary{% endif %}">
+                                                {% if mp_data.price_change_7d > 0 %}+{% endif %}₹{{ "{:,.0f}".format(mp_data.price_change_7d) }} ({{ mp_data.price_change_pct }}%)
+                                            </span>
+                                        </div>
+                                        <div class="text-muted" style="font-size: 0.72rem;">
+                                            <i class="fas fa-chart-line me-1 text-primary"></i>Daily rate: ₹{{ mp_data.daily_rate_rs }}/day ({{ mp_data.historical_count }} historical points)
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning border-0 bg-warning bg-opacity-10 py-2 px-2.5 small rounded-2 mb-0 mt-auto text-dark" style="font-size: 0.75rem;">
+                                        <i class="fas fa-info-circle text-warning me-1"></i>
+                                        <strong>Insufficient historical data</strong> ({{ mp_data.historical_count }} recorded). Linear Regression requires &ge;2 chronological points. Prices log automatically on each search.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Interactive Chart Container -->
+                <div class="bg-white rounded-3 border p-3 shadow-xs">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="fw-bold mb-0 text-dark small text-uppercase" style="letter-spacing: 0.5px;">
+                                <i class="fas fa-chart-area me-1.5 text-primary"></i>Historical vs. 7-Day Forecast Price Trajectory
+                            </h6>
+                            <span class="badge bg-light text-muted border small d-none d-sm-inline-block">Solid: Actual Price • Dashed: Linear Regression Forecast</span>
+                        </div>
+
+                        <!-- Marketplace Chart Filter Buttons -->
+                        <div class="btn-group btn-group-sm rounded-pill p-0.5 bg-light border" role="group" aria-label="Platform Filter">
+                            <button type="button" class="btn btn-sm btn-white active rounded-pill px-3 py-1 fw-semibold chart-filter-btn" data-platform="all" onclick="filterPredictionChart('all', this)">All Platforms</button>
+                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="Amazon" onclick="filterPredictionChart('Amazon', this)">Amazon</button>
+                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="Flipkart" onclick="filterPredictionChart('Flipkart', this)">Flipkart</button>
+                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="Meesho" onclick="filterPredictionChart('Meesho', this)">Meesho</button>
+                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="GEC E-Commerce" onclick="filterPredictionChart('GEC E-Commerce', this)">GEC</button>
+                        </div>
+                    </div>
+
+                    <!-- Chart Canvas -->
+                    <div style="position: relative; height: 340px; width: 100%;">
+                        <canvas id="pricePredictionChart"></canvas>
+                    </div>
+
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 mt-2 border-top border-light-subtle text-muted" style="font-size: 0.74rem;">
+                        <div>
+                            <i class="fas fa-database me-1 text-success"></i>Direct MongoDB Connection: collection <code>price_history</code>
+                        </div>
+                        <div>
+                            <i class="fas fa-brain me-1 text-indigo"></i>Algorithm: Ordinary Least Squares (OLS) Linear Regression via <code>scikit-learn</code>
+                        </div>
+                        <div>
+                            <i class="fas fa-clock me-1"></i>Updated: <span id="predGeneratedAt">{{ price_prediction.generated_at }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart.js Initialization and Dynamic FastAPI Fetch Script -->
+            <script>
+            (function() {
+                let predictionChartInstance = null;
+                const initialChartData = {{ price_prediction.chart|tojson|safe if price_prediction and price_prediction.chart else '{"labels":[], "datasets":[]}' }};
+
+                function initPricePredictionChart(chartData) {
+                    const ctx = document.getElementById('pricePredictionChart');
+                    if (!ctx) return;
+
+                    if (predictionChartInstance) {
+                        predictionChartInstance.destroy();
+                    }
+
+                    predictionChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartData.labels || [],
+                            datasets: chartData.datasets || []
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false
+                            },
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    labels: {
+                                        usePointStyle: true,
+                                        boxWidth: 8,
+                                        font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" }
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                                    titleFont: { size: 12, weight: 'bold' },
+                                    bodyFont: { size: 11 },
+                                    padding: 10,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const val = context.raw;
+                                            if (val === null || val === undefined) return null;
+                                            return ' ' + context.dataset.label + ': ₹' + Number(val).toLocaleString('en-IN', {maximumFractionDigits: 2});
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    title: {
+                                        display: true,
+                                        text: 'Timeline: Historical Observations (MongoDB) → Next 7 Days (Forecast)',
+                                        font: { size: 11, weight: 'bold' },
+                                        color: '#64748b'
+                                    },
+                                    ticks: {
+                                        font: { size: 10 },
+                                        color: '#64748b',
+                                        maxRotation: 45
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Price in Rupees (₹)',
+                                        font: { size: 11, weight: 'bold' },
+                                        color: '#64748b'
+                                    },
+                                    ticks: {
+                                        font: { size: 10 },
+                                        color: '#64748b',
+                                        callback: function(val) {
+                                            return '₹' + Number(val).toLocaleString('en-IN');
+                                        }
+                                    },
+                                    grid: {
+                                        color: 'rgba(226, 232, 240, 0.6)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Initial render on DOM load
+                document.addEventListener('DOMContentLoaded', function() {
+                    initPricePredictionChart(initialChartData);
+                });
+
+                // Filter Chart by Platform
+                window.filterPredictionChart = function(platform, btn) {
+                    if (!predictionChartInstance) return;
+
+                    document.querySelectorAll('.chart-filter-btn').forEach(b => {
+                        b.classList.remove('active', 'btn-white');
+                        b.classList.add('text-secondary');
+                    });
+                    if (btn) {
+                        btn.classList.add('active', 'btn-white');
+                        btn.classList.remove('text-secondary');
+                    }
+
+                    predictionChartInstance.data.datasets.forEach(ds => {
+                        if (platform === 'all' || ds.label.toLowerCase().includes(platform.toLowerCase())) {
+                            ds.hidden = false;
+                        } else {
+                            ds.hidden = true;
+                        }
+                    });
+                    predictionChartInstance.update();
+                };
+
+                // Live Refresh from FastAPI Backend
+                window.refreshFastApiPrediction = async function() {
+                    const btn = document.getElementById('btnRefreshPrediction');
+                    const icon = document.getElementById('refreshFastApiIcon');
+                    const text = document.getElementById('refreshFastApiText');
+                    if (btn) btn.disabled = true;
+                    if (icon) icon.className = 'fas fa-spinner fa-spin text-warning';
+                    if (text) text.innerText = 'Querying FastAPI...';
+
+                    try {
+                        const q = encodeURIComponent("{{ query }}");
+                        // Primary request to FastAPI /price-prediction endpoint
+                        let resp = null;
+                        try {
+                            resp = await fetch(`/price-prediction?query=${q}`);
+                        } catch(e) {
+                            // Fallback to Flask alias
+                            resp = await fetch(`/api/price-prediction?query=${q}`);
+                        }
+
+                        if (resp && resp.ok) {
+                            const data = await resp.json();
+                            if (data && data.chart) {
+                                initPricePredictionChart(data.chart);
+                                if (data.generated_at) {
+                                    const genEl = document.getElementById('predGeneratedAt');
+                                    if (genEl) genEl.innerText = data.generated_at;
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('[FastAPI Prediction] Error refreshing predictions:', err);
+                    } finally {
+                        if (btn) btn.disabled = false;
+                        if (icon) icon.className = 'fas fa-bolt text-warning';
+                        if (text) text.innerText = 'Refresh via FastAPI';
+                    }
+                };
+            })();
+            </script>
             {% endif %}
 
             {% if similar_products and (similar_products.amazon or similar_products.flipkart or similar_products.meesho) %}

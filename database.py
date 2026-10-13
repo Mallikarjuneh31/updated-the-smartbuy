@@ -2828,7 +2828,9 @@ def record_price_history(
     platform: str,
     price: Any,
     product_url: str = "",
-    product_id: str = ""
+    product_id: str = "",
+    search_query: str = "",
+    **kwargs: Any
 ) -> Optional[str]:
     """
     Record a product's price observation in smartbuy_db.price_history.
@@ -2858,7 +2860,10 @@ def record_price_history(
         "formatted_price": f"₹{price_num:,}",
         "product_url": str(product_url or "").strip(),
         "product_id": str(product_id or "").strip(),
+        "search_query": str(search_query or "").strip().lower(),
         "recorded_at": now,
+        "date": now,
+        "created_at": now,
         "timestamp": now.strftime("%Y-%m-%d %H:%M:%S")
     }
 
