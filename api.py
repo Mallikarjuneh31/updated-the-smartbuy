@@ -1212,7 +1212,7 @@ def search():
                 except Exception:
                     pass
         try:
-            record_search_prices_to_history(p_name, best_per_plat or matches)
+            record_search_prices_to_history(p_name, comp_result.get('all_results') or comp_result.get('validated_products') or best_per_plat or matches)
         except Exception:
             pass
         url_price_prediction = get_marketplace_7d_predictions(query=p_name, current_prices=url_prices)
@@ -1221,6 +1221,7 @@ def search():
             'results.html',
             is_url_search=True,
             price_prediction=url_price_prediction,
+            price_predictions=url_price_prediction,
             searched_url=url_param,
             source_platform=comp_result.get('source_platform'),
             source_platform_name=comp_result.get('source_platform_name'),
@@ -1314,6 +1315,13 @@ def search():
         raw_results, platform_status = fetch_all_products_with_fallbacks(query_chain, bypass_fresh=fresh)
         processed = process_results(query, raw_results, filter_params, platform_status)
         set_cached_search(cache_key, processed)
+
+    # Persist live prices to MongoDB price_history whenever searched
+    try:
+        from services.price_prediction_service import record_search_prices_to_history
+        record_search_prices_to_history(query, processed)
+    except Exception as e:
+        logger.debug(f"[PricePrediction] Could not record search prices: {e}")
 
     # Log user search and send automatic inbox notifications if logged in
     user_id = session.get('user_id')
@@ -1429,7 +1437,13 @@ def search():
                 curr_prices[p_k.lower()] = float(p_it.get('price_num') or p_it.get('price'))
             except Exception:
                 pass
-    keyword_price_prediction = get_marketplace_7d_predictions(query=query, current_prices=curr_prices)
+    p_name = ""
+    deal_cand = processed.get('best_overall_deal') or processed.get('best_deal') or processed.get('comparison_data', {}).get('best_deal')
+    if isinstance(deal_cand, dict) and deal_cand.get('title'):
+        p_name = deal_cand.get('title')
+    elif processed.get('all_results') and len(processed['all_results']) > 0:
+        p_name = processed['all_results'][0].get('title', '')
+    keyword_price_prediction = get_marketplace_7d_predictions(query=query, product_name=p_name, current_prices=curr_prices)
 
     render_data = {
         "query": query,
@@ -1437,6 +1451,7 @@ def search():
         "price_range": price_range,
         "min_rating": min_rating,
         "price_prediction": keyword_price_prediction,
+        "price_predictions": keyword_price_prediction,
         **processed
     }
 
@@ -2134,20 +2149,53 @@ def delete_gececom_product_api(product_id):
 @api_bp.route('/api/price-prediction', methods=['GET'])
 def api_price_prediction():
     """
-    Retrieve 7-day Linear Regression AI price prediction separately for
-    Amazon, Flipkart, Meesho, and GEC E-Commerce based on historical MongoDB price observations.
+    Retrieve 7-day Linear Regression AI price prediction based on historical MongoDB price observations.
+    Supports single product prediction (for product cards and modal) as well as multi-platform aggregation.
     """
-    q = request.args.get('query', request.args.get('q', request.args.get('product_name', ''))).strip()
-    if not q:
-        return jsonify({"success": False, "message": "'query' parameter is required."}), 400
+    q = request.args.get('query', request.args.get('q', '')).strip()
+    p_name = request.args.get('product_name', '').strip()
+    c_key = request.args.get('canonical_key', '').strip()
+    platform = request.args.get('platform', '').strip()
+    curr_price = request.args.get('current_price', type=float)
 
-    from services.price_prediction_service import get_marketplace_7d_predictions
-    platform = request.args.get('platform', '').strip().lower()
-    predictions = get_marketplace_7d_predictions(query=q)
+    if not q and not p_name and not c_key:
+        return jsonify({"success": False, "message": "'query', 'product_name', or 'canonical_key' parameter is required."}), 400
 
-    if platform and platform in predictions.get("marketplaces", {}):
-        predictions["marketplaces"] = {platform: predictions["marketplaces"][platform]}
+    from services.price_prediction_service import get_marketplace_7d_predictions, predict_single_product_7d
 
+    # If single product modal requested with specific platform and/or product name
+    if p_name or platform:
+        single_res = predict_single_product_7d(
+            product_name=p_name or q,
+            platform=platform,
+            current_price=curr_price,
+            canonical_key=c_key
+        )
+        return jsonify({
+            "success": True,
+            "prediction": single_res,
+            **single_res
+        }), 200
+
+    # General query across all 4 marketplaces
+    predictions = get_marketplace_7d_predictions(query=q, product_name=p_name or q, canonical_key=c_key)
     return jsonify(predictions), 200
+
+
+@api_bp.route('/price-prediction/record', methods=['POST'])
+@api_bp.route('/api/price-prediction/record', methods=['POST'])
+def api_record_price_prediction():
+    """
+    Record live price observations from Amazon, Flipkart, Meesho, GEC to MongoDB price_history.
+    """
+    data = request.get_json(silent=True) or {}
+    q = data.get('query') or data.get('product_name') or ''
+    p_data = data.get('platform_data') or data.get('products') or {}
+    if not q:
+        return jsonify({"success": False, "message": "'query' or 'product_name' is required."}), 400
+
+    from services.price_prediction_service import record_search_prices_to_history
+    res = record_search_prices_to_history(query=q, platform_data=p_data)
+    return jsonify({"success": True, "recorded": res}), 201
 
 

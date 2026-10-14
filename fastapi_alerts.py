@@ -380,14 +380,15 @@ prediction_router = APIRouter(tags=["AI Price Prediction"])
 async def price_prediction_endpoint(
     query: Optional[str] = Query(None, description="Search keyword e.g. 'Vivo T4'"),
     product_name: Optional[str] = Query(None, description="Product title"),
+    canonical_key: Optional[str] = Query(None, description="Optional canonical product identifier"),
     platform: Optional[str] = Query(None, description="Optional marketplace filter: amazon, flipkart, meesho, gec")
 ):
     from services.price_prediction_service import get_marketplace_7d_predictions
     q = (query or product_name or "").strip()
-    if not q:
-        raise HTTPException(status_code=400, detail="Either 'query' or 'product_name' query parameter is required.")
+    if not q and not canonical_key:
+        raise HTTPException(status_code=400, detail="Either 'query', 'product_name', or 'canonical_key' parameter is required.")
 
-    predictions = get_marketplace_7d_predictions(query=q, product_name=product_name or q)
+    predictions = get_marketplace_7d_predictions(query=q, product_name=product_name or q, canonical_key=canonical_key or "")
     if platform:
         plat_clean = platform.strip().lower()
         if plat_clean not in predictions.get("marketplaces", {}):

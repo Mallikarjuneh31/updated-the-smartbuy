@@ -105,8 +105,10 @@ def init_db(app=None):
         db.otp_codes.create_index([("created_at", ASCENDING)], expireAfterSeconds=600)
         db.otp_codes.create_index([("identifier", ASCENDING), ("channel", ASCENDING)], unique=True)
         db.price_alerts.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
-        db.price_alerts.create_index([("email", ASCENDING), ("created_at", DESCENDING)])
         db.price_alerts.create_index([("status", ASCENDING)])
+        db.price_history.create_index([("canonical_key", ASCENDING), ("recorded_at", ASCENDING)])
+        db.price_history.create_index([("canonical_key", ASCENDING), ("platform", ASCENDING)])
+        db.price_history.create_index([("platform", ASCENDING), ("recorded_at", ASCENDING)])
 
 
         # Ensure default administrator account exists
@@ -2830,11 +2832,13 @@ def record_price_history(
     product_url: str = "",
     product_id: str = "",
     search_query: str = "",
+    canonical_key: str = "",
     **kwargs: Any
 ) -> Optional[str]:
     """
     Record a product's price observation in smartbuy_db.price_history.
     Tracks price points over time for trend analysis & price drop detection.
+    Stores canonical_key so each product's price history is strictly isolated.
     """
     global db
     if db is None:
@@ -2851,7 +2855,14 @@ def record_price_history(
         return None
 
     clean_plat = str(platform or "gec").strip().lower()
-    now = datetime.now(timezone.utc)
+    custom_dt = kwargs.get("recorded_at") or kwargs.get("date") or kwargs.get("created_at")
+    now = custom_dt if isinstance(custom_dt, datetime) else datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+
+    ck = str(canonical_key or kwargs.get("canonical_key") or "").strip().lower()
+    p_model = str(kwargs.get("product_model") or kwargs.get("model") or "").strip()
+    p_variant = str(kwargs.get("variant") or "").strip()
 
     doc = {
         "product_name": clean_pname,
@@ -2861,6 +2872,9 @@ def record_price_history(
         "product_url": str(product_url or "").strip(),
         "product_id": str(product_id or "").strip(),
         "search_query": str(search_query or "").strip().lower(),
+        "canonical_key": ck,
+        "product_model": p_model,
+        "variant": p_variant,
         "recorded_at": now,
         "date": now,
         "created_at": now,

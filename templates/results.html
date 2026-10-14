@@ -8,7 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js for Interactive AI Price Prediction Graph -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* ── Sort Tabs ── */
@@ -133,7 +132,7 @@
         .bg-amazon  { background: linear-gradient(135deg, #232f3e, #ff9900) !important; }
         .bg-flipkart{ background: linear-gradient(135deg, #2874f0, #ffe500) !important; color: #111 !important; }
         .bg-meesho  { background: linear-gradient(135deg, #f43397, #bb1c6f) !important; }
-        .bg-gec     { background: linear-gradient(135deg, #0284c7, #0f766e) !important; color: #fff !important; }
+        .bg-gececom { background: linear-gradient(135deg, #0284c7, #0f766e) !important; color: #fff !important; }
         /* ── Specs box ── */
         .specs-badge {
             background: rgba(255,255,255,0.9);
@@ -313,6 +312,109 @@
             background: linear-gradient(90deg, #6366f1, #8b5cf6);
             transition: width 0.4s ease;
         }
+
+        /* ── Desktop Widescreen Layout & Large Typography Overrides ── */
+        @media (min-width: 992px) {
+            .container-fluid.px-3.px-md-4 {
+                padding-left: 2.2rem !important;
+                padding-right: 2.2rem !important;
+            }
+            .sort-tab {
+                font-size: 1.05rem !important;
+                padding: 12px 22px !important;
+            }
+            .view-tab-btn {
+                font-size: 1.02rem !important;
+                padding: 10px 22px !important;
+                border-radius: 25px !important;
+            }
+            .filter-panel {
+                padding: 24px !important;
+                border-radius: 22px !important;
+            }
+            .filter-section-title {
+                font-size: 0.95rem !important;
+                letter-spacing: 1.2px !important;
+                margin-bottom: 12px !important;
+            }
+            .filter-option {
+                font-size: 1.02rem !important;
+                padding: 7px 0 !important;
+            }
+            .product-card {
+                padding: 20px !important;
+                border-radius: 20px !important;
+            }
+            .product-card h6 {
+                font-size: 1.08rem !important;
+                line-height: 1.42 !important;
+                height: 2.85em !important;
+            }
+            .price-current {
+                font-size: 1.62rem !important;
+            }
+            .price-original {
+                font-size: 1.05rem !important;
+            }
+            .price-discount {
+                font-size: 0.95rem !important;
+                padding: 3px 10px !important;
+            }
+            .specs-badge {
+                font-size: 0.86rem !important;
+                padding: 4px 10px !important;
+                border-radius: 10px !important;
+            }
+            .summary-decision-grid {
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+                gap: 18px !important;
+            }
+            .summary-decision-card {
+                padding: 22px !important;
+                border-radius: 18px !important;
+            }
+            .quality-table-card table,
+            .spec-comparison-table-card table,
+            .comparison-table-card table {
+                font-size: 1.05rem !important;
+            }
+            .quality-table-card th,
+            .quality-table-card td,
+            .spec-comparison-table-card th,
+            .spec-comparison-table-card td,
+            .comparison-table-card th,
+            .comparison-table-card td {
+                padding: 16px 20px !important;
+            }
+            #viewAll .all-results-grid {
+                grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+                gap: 20px !important;
+            }
+            .search-navbar-black {
+                max-width: 480px !important;
+            }
+            .search-navbar-black input {
+                height: 44px !important;
+                font-size: 1.02rem !important;
+            }
+            .search-navbar-black button {
+                height: 44px !important;
+                width: 44px !important;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .container-fluid.px-3.px-md-4 {
+                padding-left: 3rem !important;
+                padding-right: 3rem !important;
+            }
+            .price-current {
+                font-size: 1.75rem !important;
+            }
+            .product-image-container {
+                height: 190px !important;
+            }
+        }
     </style>
 </head>
 <body class="premium-bg">
@@ -340,7 +442,7 @@
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/about"><i class="fas fa-info-circle me-1 text-secondary"></i>About</a></li>
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold active" href="/search"><i class="fas fa-search me-1 text-success"></i>Search Products</a></li>
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/my-price-alerts"><i class="fas fa-bell me-1 text-success"></i>Price Alerts</a></li>
-                <li class="nav-item"><a class="nav-link px-2 fw-semibold text-info" href="/gececom"><i class="fas fa-store me-1"></i>GEC ECom</a></li>
+                <li class="nav-item"><a class="nav-link px-2 fw-semibold text-warning" href="/gececom" title="GEC ECom Store & Live Price Editor"><i class="fas fa-store me-1"></i>GEC ECom</a></li>
                 {% if current_user %}
                 <li class="nav-item"><a class="nav-link px-2 fw-semibold" href="/profile"><i class="fas fa-user-circle me-1 text-primary"></i>Profile</a></li>
                 {% endif %}
@@ -416,12 +518,12 @@
 
             <!-- Independent Marketplace Status Badges -->
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                {% for p_name in ['Amazon', 'Flipkart', 'Meesho'] %}
+                {% for p_name in ['Amazon', 'Flipkart', 'Meesho', 'GEC ECom'] %}
                 {% set stat_obj = platform_status.get(p_name, {}) if platform_status else {} %}
                 {% set p_cnt = (platform_results.get(p_name, [])|length) if platform_results else (stat_obj.get('count', 0)) %}
                 {% set p_code = stat_obj.get('status', '')|lower %}
                 <div class="d-flex align-items-center gap-1 border px-2 py-1 rounded-pill bg-white shadow-xs" style="font-size:0.78rem;">
-                    <span class="fw-bold {% if p_name == 'Amazon' %}text-warning{% elif p_name == 'Flipkart' %}text-primary{% else %}text-danger{% endif %}">{{ p_name }}:</span>
+                    <span class="fw-bold {% if p_name == 'Amazon' %}text-warning{% elif p_name == 'Flipkart' %}text-primary{% elif p_name == 'Meesho' %}text-danger{% else %}text-info{% endif %}">{{ p_name }}:</span>
                     {% if p_cnt > 0 %}
                     <span class="badge bg-success text-white rounded-pill px-2 py-0"><i class="fas fa-check me-1"></i>Found ({{ p_cnt }})</span>
                     {% elif p_code in ('blocked', 'access_blocked') %}
@@ -577,7 +679,7 @@
                             <i class="fas fa-tag me-1"></i>LOWEST PRICE
                         </span>
                         {% if lp and lp.platform %}
-                        <span class="badge {% if lp.platform == 'Amazon' %}bg-amazon text-white{% elif lp.platform == 'Flipkart' %}bg-flipkart text-dark{% else %}bg-meesho text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
+                        <span class="badge {% if lp.platform == 'Amazon' %}bg-amazon text-white{% elif lp.platform == 'Flipkart' %}bg-flipkart text-dark{% elif lp.platform == 'Meesho' %}bg-meesho text-white{% else %}bg-gececom text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
                             {{ lp.platform }}
                         </span>
                         {% endif %}
@@ -618,7 +720,7 @@
                             <i class="fas fa-award me-1"></i>HIGHEST QUALITY EVIDENCE
                         </span>
                         {% if bq and bq.platform %}
-                        <span class="badge {% if bq.platform == 'Amazon' %}bg-amazon text-white{% elif bq.platform == 'Flipkart' %}bg-flipkart text-dark{% else %}bg-meesho text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
+                        <span class="badge {% if bq.platform == 'Amazon' %}bg-amazon text-white{% elif bq.platform == 'Flipkart' %}bg-flipkart text-dark{% elif bq.platform == 'Meesho' %}bg-meesho text-white{% else %}bg-gececom text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
                             {{ bq.platform }}
                         </span>
                         {% endif %}
@@ -669,7 +771,7 @@
                             <i class="fas fa-microchip me-1"></i>SPECIFICATION MATCH
                         </span>
                         {% if sm and sm.platform %}
-                        <span class="badge {% if sm.platform == 'Amazon' %}bg-amazon text-white{% elif sm.platform == 'Flipkart' %}bg-flipkart text-dark{% else %}bg-meesho text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
+                        <span class="badge {% if sm.platform == 'Amazon' %}bg-amazon text-white{% elif sm.platform == 'Flipkart' %}bg-flipkart text-dark{% elif sm.platform == 'Meesho' %}bg-meesho text-white{% else %}bg-gececom text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
                             {{ sm.platform }}
                         </span>
                         {% endif %}
@@ -718,7 +820,7 @@
                             <i class="fas fa-star me-1"></i>CUSTOMER REVIEWS
                         </span>
                         {% if ri and ri.platform %}
-                        <span class="badge {% if ri.platform == 'Amazon' %}bg-amazon text-white{% elif ri.platform == 'Flipkart' %}bg-flipkart text-dark{% else %}bg-meesho text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
+                        <span class="badge {% if ri.platform == 'Amazon' %}bg-amazon text-white{% elif ri.platform == 'Flipkart' %}bg-flipkart text-dark{% elif ri.platform == 'Meesho' %}bg-meesho text-white{% else %}bg-gececom text-white{% endif %} px-2 py-0.5 rounded-pill" style="font-size:0.68rem;">
                             {{ ri.platform }}
                         </span>
                         {% endif %}
@@ -917,7 +1019,7 @@
             <!-- View Tabs (Side-by-Side Platforms | Quality Comparison Table | Specification Table | All Product Cards) -->
             <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
                 <button class="view-tab-btn active" id="tabPlatform" onclick="switchView('platform')">
-                    <i class="fas fa-columns me-1"></i> Side-by-Side Platforms (Amazon | Flipkart | Meesho)
+                    <i class="fas fa-columns me-1"></i> Side-by-Side Platforms (Amazon | Flipkart | Meesho | GEC ECom)
                 </button>
                 <button class="view-tab-btn" id="tabQualityTable" onclick="switchView('qualityTable')">
                     <i class="fas fa-award me-1"></i> Quality Comparison Table
@@ -933,7 +1035,311 @@
                     <i class="fas fa-th me-1"></i> All Product Cards
                     <span class="result-count-badge ms-1">{{ total }}</span>
                 </button>
+                <button class="view-tab-btn" id="tabPrediction" onclick="scrollToPredictionSection()">
+                    <i class="fas fa-brain me-1 text-primary"></i> AI Price Prediction &amp; 7-Day Trend
+                    {% if price_predictions and price_predictions.has_any_prediction %}
+                    <span class="badge bg-success text-white rounded-pill ms-1">Active</span>
+                    {% endif %}
+                </button>
             </div>
+
+            
+            <!-- ══════════════════════════════════════ AI PRICE PREDICTION & 7-DAY FORECAST (LINEAR REGRESSION) ══════════════════════════════════════ -->
+            {% set preds_dict = price_predictions.get('predictions', {}) if price_predictions and price_predictions.get('predictions') else {} %}
+            {% if preds_dict %}
+            <div class="card border-0 mb-4 prediction-card shadow-sm rounded-4" id="aiPricePredictionSection" style="background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(248,250,252,0.98)); border: 1px solid rgba(226,232,240,0.9) !important;">
+                <div class="card-header bg-transparent border-0 pt-4 px-4 pb-2">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="prediction-badge-ai badge rounded-pill px-3 py-1.5 fw-bold text-white shadow-xs" style="background: linear-gradient(135deg, #4f46e5, #06b6d4);">
+                                <i class="fas fa-brain me-1.5"></i> AI PRICE PREDICTION &amp; 7-DAY FORECAST
+                            </span>
+                            <span class="badge bg-dark text-white border px-2.5 py-1 rounded-pill small">
+                                <i class="fas fa-chart-line me-1 text-warning"></i>Linear Regression Model
+                            </span>
+                            <span class="badge bg-success-subtle text-success border border-success px-2.5 py-1 rounded-pill small">
+                                <i class="fas fa-database me-1"></i>MongoDB History Tracking
+                            </span>
+                        </div>
+                        <div class="small text-muted d-flex align-items-center gap-1">
+                            <i class="fas fa-microchip text-primary me-1"></i>Scikit-Learn ML Engine
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2">
+                        <p class="text-muted small mb-0">
+                            Predicts future prices for the next 7 days per platform and product variant based on historical records. If data is newly tracked, baseline daily observations anchor the model.
+                        </p>
+                        {% if price_predictions.get('best_drop_platform') %}
+                        <span class="badge bg-success text-white rounded-pill px-3 py-1 small">
+                            <i class="fas fa-bullseye me-1"></i>Top Projected Drop: <strong>{{ price_predictions.get('best_drop_platform') }}</strong>
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Platform Selection Tabs -->
+                <div class="px-4 pt-2 pb-3 border-bottom border-light-subtle d-flex align-items-center gap-2 flex-wrap" id="predPlatformTabs">
+                    <span class="small fw-bold text-muted me-1"><i class="fas fa-store me-1"></i>Platform Forecast:</span>
+                    <button type="button"
+                            class="platform-predict-tab active btn btn-sm rounded-pill fw-bold px-3 py-1.5"
+                            data-platform="all"
+                            onclick="selectPredictionPlatform('all')">
+                        <i class="fas fa-layer-group text-primary me-1"></i>
+                        <span>All Platforms</span>
+                        <span class="badge bg-primary text-white rounded-pill px-2 py-0.5 ms-1" style="font-size:0.8rem;">4 Websites</span>
+                    </button>
+                    {% for plat in ['Amazon', 'Flipkart', 'Meesho', 'GEC ECom'] %}
+                        {% if plat in preds_dict %}
+                        {% set p_info = preds_dict.get(plat, {}) %}
+                        <button type="button"
+                                class="platform-predict-tab btn btn-sm rounded-pill fw-semibold px-3 py-1.5"
+                                data-platform="{{ plat }}"
+                                onclick="selectPredictionPlatform('{{ plat }}')">
+                            <i class="{% if plat == 'Amazon' %}fab fa-amazon text-warning{% elif plat == 'Flipkart' %}fas fa-bolt text-primary{% elif plat == 'Meesho' %}fas fa-shopping-bag text-danger{% else %}fas fa-store text-info{% endif %} me-1"></i>
+                            <span>{{ plat }}</span>
+                            {% if p_info.has_prediction %}
+                                {% if p_info.direction == 'DECREASE' %}
+                                <span class="badge bg-success text-white rounded-pill px-2 py-0.5 ms-1" style="font-size:0.8rem;">
+                                    <i class="fas fa-arrow-down me-0.5"></i>{{ p_info.percentage_change_formatted }}
+                                </span>
+                                {% elif p_info.direction == 'INCREASE' %}
+                                <span class="badge bg-danger text-white rounded-pill px-2 py-0.5 ms-1" style="font-size:0.8rem;">
+                                    <i class="fas fa-arrow-up me-0.5"></i>{{ p_info.percentage_change_formatted }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-info text-white rounded-pill px-2 py-0.5 ms-1" style="font-size:0.8rem;">
+                                    Stable
+                                </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge bg-secondary text-white rounded-pill px-2 py-0.5 ms-1" style="font-size:0.8rem;">
+                                    Live
+                                </span>
+                            {% endif %}
+                        </button>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+
+                <!-- Platform Panels -->
+                <div class="card-body p-3 p-md-4">
+                    <!-- ════ ALL 4 PLATFORMS COMBINED PANEL ════ -->
+                    <div class="pred-platform-panel" id="predPanel_all">
+                        <!-- 4 Platform Forecast Summary Cards in a Row -->
+                        <div class="row g-3 mb-3">
+                            {% for p_key, p_badge_color, p_icon, p_name in [
+                                ('Amazon', '#ff9900', 'fab fa-amazon', 'Amazon'),
+                                ('Flipkart', '#2874f0', 'fas fa-bolt', 'Flipkart'),
+                                ('Meesho', '#f43397', 'fas fa-shopping-bag', 'Meesho'),
+                                ('GEC ECom', '#0284c7', 'fas fa-store', 'GEC ECom')
+                            ] %}
+                            {% set p_info = preds_dict.get(p_key, {}) %}
+                            <div class="col-6 col-lg-3">
+                                <div class="predict-stat-box h-100 p-3 bg-white rounded-3 shadow-xs border" onclick="selectPredictionPlatform('{{ p_key }}')" style="border-top: 3.5px solid {{ p_badge_color }} !important; cursor: pointer; transition: transform 0.2s;" title="Click to view detailed {{ p_name }} forecast">
+                                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                        <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
+                                            <i class="{{ p_icon }}" style="color: {{ p_badge_color }};"></i> {{ p_name }}
+                                        </span>
+                                        {% if p_info.has_prediction %}
+                                            {% if p_info.direction == 'DECREASE' %}
+                                            <span class="badge bg-success text-white rounded-pill px-2 py-0.5" style="font-size:0.75rem;">
+                                                <i class="fas fa-arrow-down me-0.5"></i>{{ p_info.percentage_change_formatted }}
+                                            </span>
+                                            {% elif p_info.direction == 'INCREASE' %}
+                                            <span class="badge bg-danger text-white rounded-pill px-2 py-0.5" style="font-size:0.75rem;">
+                                                <i class="fas fa-arrow-up me-0.5"></i>{{ p_info.percentage_change_formatted }}
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-info text-white rounded-pill px-2 py-0.5" style="font-size:0.75rem;">Stable</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-secondary text-white rounded-pill px-2 py-0.5" style="font-size:0.75rem;">Live</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="fs-5 fw-extrabold text-dark mb-0">{{ p_info.current_price_formatted or '₹—' }}</div>
+                                    <div class="small text-muted mt-1 d-flex align-items-center justify-content-between">
+                                        <span>7-Day: <strong style="color: {{ p_badge_color }};">{{ p_info.predicted_price_formatted or p_info.current_price_formatted }}</strong></span>
+                                        <span class="small text-primary fw-semibold"><i class="fas fa-chart-line"></i> View</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Multi-Platform Unified Comparison Chart (Chart.js) -->
+                        <div class="card border-0 shadow-xs rounded-4 p-3 bg-light bg-opacity-50">
+                            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-chart-line text-primary"></i>
+                                    <h6 class="fw-bold mb-0 text-dark">Price History Graph &amp; 7-Day Predicted Trajectory</h6>
+                                    <span class="badge bg-primary text-white rounded-pill small">All 4 Websites Comparison</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3 small text-muted flex-wrap">
+                                    <span class="d-flex align-items-center gap-1">
+                                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#ff9900;"></span> Amazon
+                                    </span>
+                                    <span class="d-flex align-items-center gap-1">
+                                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#2874f0;"></span> Flipkart
+                                    </span>
+                                    <span class="d-flex align-items-center gap-1">
+                                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#f43397;"></span> Meesho
+                                    </span>
+                                    <span class="d-flex align-items-center gap-1">
+                                        <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#0284c7;"></span> GEC ECom
+                                    </span>
+                                    <span class="text-secondary opacity-75">|</span>
+                                    <span><span style="display:inline-block; width:12px; height:3px; background:#475569; border-radius:2px;"></span> Solid = History</span>
+                                    <span><span style="display:inline-block; width:12px; height:3px; background:#475569; border-radius:2px; border-top: 1px dashed #475569;"></span> Dashed = Forecast</span>
+                                </div>
+                            </div>
+                            <div class="chart-container-wrapper" style="position:relative; height: 380px; width: 100%;">
+                                <canvas id="chart_all"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Individual Platform Panels -->
+                    {% for plat, p_data in preds_dict.items() %}
+                    <div class="pred-platform-panel d-none" id="predPanel_{{ plat|replace(' ', '_') }}">
+                        {% if p_data.has_prediction %}
+                        <!-- 4 Stat Metric Cards -->
+                        <div class="row g-3 mb-3">
+                            <!-- 1. Current Price -->
+                            <div class="col-6 col-lg-3">
+                                <div class="predict-stat-box p-3 bg-white rounded-3 shadow-xs border">
+                                    <div class="text-muted small fw-semibold text-uppercase mb-1">
+                                        <i class="fas fa-tag me-1 text-primary"></i>Current Price
+                                    </div>
+                                    <div class="fs-4 fw-extrabold text-dark">{{ p_data.current_price_formatted }}</div>
+                                    <div class="small text-muted mt-1 text-truncate" title="{{ p_data.product_name }}">
+                                        {{ p_data.platform }} Live Verified
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 2. Predicted Price (7 Days) -->
+                            <div class="col-6 col-lg-3">
+                                <div class="predict-stat-box p-3 bg-white rounded-3 shadow-xs border" style="border-left: 3px solid #6366f1 !important;">
+                                    <div class="text-muted small fw-semibold text-uppercase mb-1">
+                                        <i class="fas fa-calendar-check me-1" style="color:#6366f1;"></i>7-Day Predicted Price
+                                    </div>
+                                    <div class="fs-4 fw-extrabold" style="color:#4f46e5;">{{ p_data.predicted_price_formatted }}</div>
+                                    <div class="small text-muted mt-1">
+                                        Forecast for Day +7
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3. Expected Price Change -->
+                            <div class="col-6 col-lg-3">
+                                <div class="predict-stat-box p-3 bg-white rounded-3 shadow-xs border" style="border-left: 3px solid {% if p_data.direction == 'DECREASE' %}#10b981{% elif p_data.direction == 'INCREASE' %}#ef4444{% else %}#0ea5e9{% endif %} !important;">
+                                    <div class="text-muted small fw-semibold text-uppercase mb-1">
+                                        <i class="fas fa-exchange-alt me-1"></i>Expected Change
+                                    </div>
+                                    <div class="fs-4 fw-extrabold {% if p_data.direction == 'DECREASE' %}text-success{% elif p_data.direction == 'INCREASE' %}text-danger{% else %}text-info{% endif %}">
+                                        {{ p_data.price_difference_formatted }}
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1 mt-1">
+                                        <span class="{{ p_data.badge_class }} rounded-pill px-2.5 py-0.5" style="font-size:0.85rem;">
+                                            <i class="{{ p_data.icon }} me-1"></i>{{ p_data.percentage_change_formatted }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 4. Model Details & Recommendation -->
+                            <div class="col-6 col-lg-3">
+                                <div class="predict-stat-box p-3 bg-white rounded-3 shadow-xs border">
+                                    <div class="text-muted small fw-semibold text-uppercase mb-1">
+                                        <i class="fas fa-lightbulb me-1 text-warning"></i>Recommendation
+                                    </div>
+                                    <div class="small fw-bold text-dark mb-1">
+                                        {% if p_data.direction == 'DECREASE' %}
+                                        <span class="text-success"><i class="fas fa-clock me-1"></i>Wait to Buy (Price Drop)</span>
+                                        {% elif p_data.direction == 'INCREASE' %}
+                                        <span class="text-danger"><i class="fas fa-bolt me-1"></i>Buy Now (Price Rise)</span>
+                                        {% else %}
+                                        <span class="text-info"><i class="fas fa-check-circle me-1"></i>Stable Pricing</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-muted small" style="font-size:0.82rem;">
+                                        Fit R²: <strong>{{ p_data.r2_score }}</strong> &bull; {{ p_data.data_points_count }} historical points
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Highlight Recommendation Banner -->
+                        <div class="alert border-0 shadow-xs rounded-4 py-2 px-3 mb-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
+                             style="background: {% if p_data.direction == 'DECREASE' %}rgba(16,185,129,0.08){% elif p_data.direction == 'INCREASE' %}rgba(239,68,68,0.08){% else %}rgba(14,165,233,0.08){% endif %};">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="{{ p_data.icon }} fs-5 {% if p_data.direction == 'DECREASE' %}text-success{% elif p_data.direction == 'INCREASE' %}text-danger{% else %}text-info{% endif %}"></i>
+                                <div>
+                                    <strong class="text-dark">{{ p_data.trend_label }}</strong>
+                                    <div class="text-muted small">{{ p_data.recommendation }} &bull; Variant: {{ p_data.product_model }}</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-1 shadow-xs bg-white"
+                                        onclick="openPriceAlertModal(this)"
+                                        data-product-name="{{ p_data.product_name }}"
+                                        data-platform="{{ p_data.platform }}"
+                                        data-current-price="{{ p_data.current_price }}"
+                                        data-target-price="{{ p_data.predicted_price_7d }}">
+                                    <i class="fas fa-bell me-1 text-warning"></i>Set Alert for {{ p_data.predicted_price_formatted }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Price History & 7-Day Forecast Graph (Chart.js) -->
+                        <div class="card border-0 shadow-xs rounded-4 p-3 bg-light bg-opacity-50">
+                            <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="fas fa-chart-area text-primary"></i>
+                                    <h6 class="fw-bold mb-0 text-dark">Price History Graph &amp; 7-Day Predicted Trajectory</h6>
+                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill small">{{ plat }}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-3 small text-muted">
+                                    <span class="d-flex align-items-center gap-1">
+                                        <span style="display:inline-block; width:12px; height:3px; background:#2563eb; border-radius:2px;"></span>
+                                        Recorded History
+                                    </span>
+                                    <span class="d-flex align-items-center gap-1">
+                                        <span style="display:inline-block; width:12px; height:3px; background:#8b5cf6; border-radius:2px; border-top: 1px dashed #8b5cf6;"></span>
+                                        7-Day Linear Forecast
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="chart-container-wrapper" style="position:relative; height: 350px; width: 100%;">
+                                <canvas id="chart_{{ plat|replace(' ', '_') }}"></canvas>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Insufficient Data State for Platform -->
+                        <div class="card border-0 shadow-xs rounded-4 p-4 text-center bg-white my-3">
+                            <div class="py-4">
+                                <div class="mb-3">
+                                    <span class="badge rounded-circle p-3" style="background: rgba(99, 102, 241, 0.1); color: #6366f1; font-size: 1.5rem;">
+                                        <i class="fas fa-chart-line"></i>
+                                    </span>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-2">Insufficient Historical Price Data for {{ plat }}</h5>
+                                <p class="text-muted mx-auto mb-3" style="max-width: 580px; font-size: 0.92rem;">
+                                    {{ p_data.message or "SmartBuy requires at least 3 historical price observations to fit an accurate Linear Regression model. Real-time price tracking has been initiated for this marketplace." }}
+                                </p>
+                                <div class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-pill bg-light border text-muted small">
+                                    <i class="fas fa-database text-primary"></i>
+                                    <span>Current Logged Price: <strong class="text-dark">{{ p_data.current_price_formatted or '₹—' }}</strong></span>
+                                    <span class="badge bg-success-subtle text-success border border-success rounded-pill ms-1">Tracking Active in MongoDB</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- ════════════ PRODUCT SPECIFICATION COMPARISON TABLE ════════════ -->
             {% if specifications_matrix %}
@@ -957,7 +1363,7 @@
                     {% set amz_stat = marketplace_status.get('Amazon', {}) if marketplace_status else {} %}
                     {% set fk_stat = marketplace_status.get('Flipkart', {}) if marketplace_status else {} %}
                     {% set mee_stat = marketplace_status.get('Meesho', {}) if marketplace_status else {} %}
-                    {% set gec_stat = marketplace_status.get('GEC', {}) if marketplace_status else {} %}
+                    {% set gec_stat = marketplace_status.get('GEC ECom', {}) if marketplace_status else {} %}
 
                     <div class="d-flex align-items-center gap-1">
                         <span class="badge bg-amazon text-white px-2 py-1 rounded-pill small">Amazon:</span>
@@ -981,7 +1387,7 @@
                     </div>
 
                     <div class="d-flex align-items-center gap-1">
-                        <span class="badge bg-gec text-white px-2 py-1 rounded-pill small" style="background:#0284c7;">GEC:</span>
+                        <span class="badge bg-gececom text-white px-2 py-1 rounded-pill small">GEC ECom:</span>
                         <span class="badge {{ gec_stat.badge_class or 'bg-secondary text-white' }} px-2 py-1 rounded-pill small">
                             <i class="{{ gec_stat.icon or 'fas fa-minus-circle' }} me-1"></i>{{ gec_stat.label or (gec_stat.status if gec_stat else 'Unavailable') }}
                         </span>
@@ -1003,7 +1409,7 @@
                                     <span class="badge bg-meesho text-white px-3 py-1 rounded-pill">Meesho</span>
                                 </th>
                                 <th style="width: 20%;">
-                                    <span class="badge bg-gec text-white px-3 py-1 rounded-pill" style="background:#0284c7;">GEC E-Commerce</span>
+                                    <span class="badge bg-gececom text-white px-3 py-1 rounded-pill">GEC ECom</span>
                                 </th>
                             </tr>
                         </thead>
@@ -1012,7 +1418,7 @@
                             {% set amz_item = comparison_data.amazon or comparison_data.Amazon or (best_per_platform.get('Amazon') if best_per_platform else None) or (platform_results.Amazon[0] if (platform_results and platform_results.get('Amazon')) else None) %}
                             {% set fk_item = comparison_data.flipkart or comparison_data.Flipkart or (best_per_platform.get('Flipkart') if best_per_platform else None) or (platform_results.Flipkart[0] if (platform_results and platform_results.get('Flipkart')) else None) %}
                             {% set mee_item = comparison_data.meesho or comparison_data.Meesho or (best_per_platform.get('Meesho') if best_per_platform else None) or (platform_results.Meesho[0] if (platform_results and platform_results.get('Meesho')) else None) %}
-                            {% set gec_item = comparison_data.gec or comparison_data.GEC or comparison_data.gececom or (best_per_platform.get('GEC') if best_per_platform else None) or (platform_results.GEC[0] if (platform_results and platform_results.get('GEC')) else None) %}
+                            {% set gec_item = comparison_data.gececom or comparison_data.get('GEC ECom') or (best_per_platform.get('GEC ECom') if best_per_platform else None) or (platform_results.get('GEC ECom', [None])[0] if platform_results else None) %}
 
                             <!-- Product Preview Image Row -->
                             <tr class="table-light">
@@ -1047,7 +1453,7 @@
                                 <td>
                                     {% set gec_img = gec_item.image if (gec_item and gec_item.image) else (gec_item.image_url if (gec_item and gec_item.image_url) else None) %}
                                     {% if gec_img and gec_img|length >= 10 and not ('placeholder' in gec_img|lower or 'no_image' in gec_img|lower) %}
-                                    <img src="{{ gec_img }}" alt="GEC Product" style="height: 70px; max-width: 100px; object-fit: contain; border-radius: 6px; background:#fff; padding: 2px;" referrerpolicy="no-referrer" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline';">
+                                    <img src="{{ gec_img }}" alt="GEC ECom Product" style="height: 70px; max-width: 100px; object-fit: contain; border-radius: 6px; background:#fff; padding: 2px;" referrerpolicy="no-referrer" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline';">
                                     <span style="display:none;" class="text-muted">—</span>
                                     {% else %}
                                     <span class="text-muted">—</span>
@@ -1069,7 +1475,7 @@
                                 {% set amz_val = row.amazon %}
                                 {% set fk_val = row.flipkart %}
                                 {% set mee_val = row.meesho %}
-                                {% set gec_val = row.gec %}
+                                {% set gec_val = row.gececom or row.gec or (row.get('GEC ECom') if row.get else None) %}
                                 {% set has_amz = amz_val and amz_val not in is_inv and not ('temporarily unavailable' in amz_val|string|lower or 'scraping unavailable' in amz_val|string|lower or 'no matching product' in amz_val|string|lower) %}
                                 {% set has_fk = fk_val and fk_val not in is_inv and not ('temporarily unavailable' in fk_val|string|lower or 'scraping unavailable' in fk_val|string|lower or 'no matching product' in fk_val|string|lower) %}
                                 {% set has_mee = mee_val and mee_val not in is_inv and not ('temporarily unavailable' in mee_val|string|lower or 'scraping unavailable' in mee_val|string|lower or 'no matching product' in mee_val|string|lower) %}
@@ -1125,7 +1531,7 @@
                                         <td class="{% if r_name == 'Price' and comparison_data.get('best_deal') and comparison_data.best_deal.platform == 'Meesho' %}fw-bold text-success bg-success bg-opacity-10{% elif r_name == 'Quality Score' %}fw-bold text-primary{% endif %}">
                                             {{ mee_val if has_mee else '—' }}
                                         </td>
-                                        <td class="{% if r_name == 'Price' and comparison_data.get('best_deal') and comparison_data.best_deal.platform in ('GEC', 'gec', 'GEC E-Commerce') %}fw-bold text-success bg-success bg-opacity-10{% elif r_name == 'Quality Score' %}fw-bold text-primary{% endif %}">
+                                        <td class="{% if r_name == 'Price' and comparison_data.get('best_deal') and comparison_data.best_deal.platform == 'GEC ECom' %}fw-bold text-success bg-success bg-opacity-10{% elif r_name == 'Quality Score' %}fw-bold text-primary{% endif %}">
                                             {{ gec_val if has_gec else '—' }}
                                         </td>
                                     </tr>
@@ -1186,14 +1592,9 @@
                                 <td>
                                     {% set gec_url = gec_item.product_url or gec_item.link or gec_item.url if gec_item else None %}
                                     {% if gec_url and gec_url != '#' %}
-                                    <a href="javascript:void(0)"
-                                       data-url="{{ gec_url }}"
-                                       data-platform="GEC E-Commerce"
-                                       data-product-name="{{ gec_item.title }}"
-                                       data-price="{{ gec_item.price_formatted or gec_item.price }}"
-                                       onclick="triggerBuyRedirect(this)"
+                                    <a href="{{ gec_url }}"
                                        class="btn btn-info btn-sm rounded-pill px-3 py-1 fw-bold text-white shadow-sm" style="background:#0284c7; border-color:#0284c7;">
-                                       <i class="fas fa-external-link-alt me-1"></i>Buy on GEC
+                                       <i class="fas fa-external-link-alt me-1"></i>Buy on GEC ECom
                                     </a>
                                     {% else %}
                                     <span class="text-muted">—</span>
@@ -1230,318 +1631,6 @@
                     {% endfor %}
                 </div>
             </div>
-            {% endif %}
-
-            <!-- ════ 🤖 7-DAY AI PRICE PREDICTION SYSTEM (LINEAR REGRESSION) ════ -->
-            {% if price_prediction %}
-            <div class="card border-0 shadow-sm glass-card mb-4 rounded-4 p-4 position-relative overflow-hidden" id="aiPricePredictionSection" style="background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(248,250,252,0.95)); border: 1px solid rgba(226,232,240,0.8) !important;">
-                <!-- Header & Meta -->
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-3 border-bottom border-secondary border-opacity-10">
-                    <div>
-                        <div class="d-flex align-items-center gap-2 mb-1">
-                            <span class="badge rounded-pill px-3 py-1.5 fw-bold text-white shadow-xs" style="background: linear-gradient(135deg, #4f46e5, #06b6d4);">
-                                <i class="fas fa-robot me-1.5"></i>AI Linear Regression
-                            </span>
-                            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                                7-Day Price Prediction &amp; Trend Forecast
-                            </h5>
-                        </div>
-                        <p class="text-muted small mb-0">
-                            Trained on real chronological price observations in MongoDB across <strong>Amazon, Flipkart, Meesho, and GEC E-Commerce</strong>. Forecasts prices for the next 7 days.
-                        </p>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-2">
-                        {% if price_prediction.best_7d_deal %}
-                        <div class="d-none d-md-flex align-items-center gap-2 bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-3 py-1.5 small fw-semibold">
-                            <i class="fas fa-trophy text-warning"></i>
-                            Lowest 7-Day Forecast: <strong class="text-success">₹{{ "{:,.0f}".format(price_prediction.best_7d_deal.predicted_price) }}</strong> on {{ price_prediction.best_7d_deal.platform }}
-                        </div>
-                        {% endif %}
-                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 fw-semibold d-flex align-items-center gap-1.5 shadow-xs" id="btnRefreshPrediction" onclick="refreshFastApiPrediction()">
-                            <i class="fas fa-bolt text-warning" id="refreshFastApiIcon"></i>
-                            <span id="refreshFastApiText">Refresh via FastAPI</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 4-Marketplace Stat Cards -->
-                <div class="row g-3 mb-4" id="predictionCardsRow">
-                    {% for mp_key in ('amazon', 'flipkart', 'meesho', 'gec') %}
-                        {% set mp_data = price_prediction.marketplaces.get(mp_key, {}) %}
-                        {% set plat_name = mp_data.platform_name or mp_key|capitalize %}
-                        {% set plat_color = mp_data.colors.primary if mp_data.colors else '#64748b' %}
-
-                        <div class="col-md-6 col-lg-3">
-                            <div class="card h-100 border p-3 rounded-3 shadow-xs bg-white position-relative" style="border-top: 4px solid {{ plat_color }} !important;">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
-                                        <span class="badge rounded-circle p-1" style="background: {{ plat_color }}; width: 10px; height: 10px; display: inline-block;"></span>
-                                        {{ plat_name }}
-                                    </span>
-                                    {% if mp_data.sufficient_data %}
-                                        {% if mp_data.trend == 'falling' %}
-                                        <span class="badge bg-success bg-opacity-15 text-success rounded-pill px-2.5 py-1 small fw-semibold">
-                                            <i class="fas fa-arrow-trend-down me-1"></i>Drop Expected
-                                        </span>
-                                        {% elif mp_data.trend == 'rising' %}
-                                        <span class="badge bg-danger bg-opacity-15 text-danger rounded-pill px-2.5 py-1 small fw-semibold">
-                                            <i class="fas fa-arrow-trend-up me-1"></i>Rise Expected
-                                        </span>
-                                        {% else %}
-                                        <span class="badge bg-secondary bg-opacity-15 text-secondary rounded-pill px-2.5 py-1 small fw-semibold">
-                                            <i class="fas fa-minus me-1"></i>Likely Stable
-                                        </span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="badge bg-warning bg-opacity-20 text-warning-emphasis border border-warning border-opacity-25 rounded-pill px-2 py-0.5 small" style="font-size: 0.72rem;">
-                                            <i class="fas fa-hourglass-half me-1"></i>Insufficient History
-                                        </span>
-                                    {% endif %}
-                                </div>
-
-                                <div class="row g-2 mb-2">
-                                    <div class="col-6">
-                                        <div class="text-muted" style="font-size: 0.74rem;">Current Price</div>
-                                        <div class="fw-bold fs-6 text-dark">
-                                            {% if mp_data.current_price %}
-                                                ₹{{ "{:,.0f}".format(mp_data.current_price) }}
-                                            {% else %}
-                                                <span class="text-muted">—</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="text-muted" style="font-size: 0.74rem;">Day +7 Forecast</div>
-                                        <div class="fw-bold fs-6 {% if mp_data.sufficient_data %}{% if mp_data.trend == 'falling' %}text-success{% elif mp_data.trend == 'rising' %}text-danger{% else %}text-primary{% endif %}{% else %}text-muted{% endif %}">
-                                            {% if mp_data.sufficient_data and mp_data.predicted_7d_price %}
-                                                ₹{{ "{:,.0f}".format(mp_data.predicted_7d_price) }}
-                                            {% else %}
-                                                <span class="text-muted small">Not Available</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {% if mp_data.sufficient_data %}
-                                    <div class="p-2 rounded-2 bg-light border border-light-subtle small mt-auto" style="font-size: 0.76rem;">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="text-muted">7-Day Change:</span>
-                                            <span class="fw-bold {% if mp_data.price_change_7d < 0 %}text-success{% elif mp_data.price_change_7d > 0 %}text-danger{% else %}text-secondary{% endif %}">
-                                                {% if mp_data.price_change_7d > 0 %}+{% endif %}₹{{ "{:,.0f}".format(mp_data.price_change_7d) }} ({{ mp_data.price_change_pct }}%)
-                                            </span>
-                                        </div>
-                                        <div class="text-muted" style="font-size: 0.72rem;">
-                                            <i class="fas fa-chart-line me-1 text-primary"></i>Daily rate: ₹{{ mp_data.daily_rate_rs }}/day ({{ mp_data.historical_count }} historical points)
-                                        </div>
-                                    </div>
-                                {% else %}
-                                    <div class="alert alert-warning border-0 bg-warning bg-opacity-10 py-2 px-2.5 small rounded-2 mb-0 mt-auto text-dark" style="font-size: 0.75rem;">
-                                        <i class="fas fa-info-circle text-warning me-1"></i>
-                                        <strong>Insufficient historical data</strong> ({{ mp_data.historical_count }} recorded). Linear Regression requires &ge;2 chronological points. Prices log automatically on each search.
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Interactive Chart Container -->
-                <div class="bg-white rounded-3 border p-3 shadow-xs">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <h6 class="fw-bold mb-0 text-dark small text-uppercase" style="letter-spacing: 0.5px;">
-                                <i class="fas fa-chart-area me-1.5 text-primary"></i>Historical vs. 7-Day Forecast Price Trajectory
-                            </h6>
-                            <span class="badge bg-light text-muted border small d-none d-sm-inline-block">Solid: Actual Price • Dashed: Linear Regression Forecast</span>
-                        </div>
-
-                        <!-- Marketplace Chart Filter Buttons -->
-                        <div class="btn-group btn-group-sm rounded-pill p-0.5 bg-light border" role="group" aria-label="Platform Filter">
-                            <button type="button" class="btn btn-sm btn-white active rounded-pill px-3 py-1 fw-semibold chart-filter-btn" data-platform="all" onclick="filterPredictionChart('all', this)">All Platforms</button>
-                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="Amazon" onclick="filterPredictionChart('Amazon', this)">Amazon</button>
-                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="Flipkart" onclick="filterPredictionChart('Flipkart', this)">Flipkart</button>
-                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="Meesho" onclick="filterPredictionChart('Meesho', this)">Meesho</button>
-                            <button type="button" class="btn btn-sm text-secondary rounded-pill px-2.5 py-1 fw-semibold chart-filter-btn" data-platform="GEC E-Commerce" onclick="filterPredictionChart('GEC E-Commerce', this)">GEC</button>
-                        </div>
-                    </div>
-
-                    <!-- Chart Canvas -->
-                    <div style="position: relative; height: 340px; width: 100%;">
-                        <canvas id="pricePredictionChart"></canvas>
-                    </div>
-
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 mt-2 border-top border-light-subtle text-muted" style="font-size: 0.74rem;">
-                        <div>
-                            <i class="fas fa-database me-1 text-success"></i>Direct MongoDB Connection: collection <code>price_history</code>
-                        </div>
-                        <div>
-                            <i class="fas fa-brain me-1 text-indigo"></i>Algorithm: Ordinary Least Squares (OLS) Linear Regression via <code>scikit-learn</code>
-                        </div>
-                        <div>
-                            <i class="fas fa-clock me-1"></i>Updated: <span id="predGeneratedAt">{{ price_prediction.generated_at }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chart.js Initialization and Dynamic FastAPI Fetch Script -->
-            <script>
-            (function() {
-                let predictionChartInstance = null;
-                const initialChartData = {{ price_prediction.chart|tojson|safe if price_prediction and price_prediction.chart else '{"labels":[], "datasets":[]}' }};
-
-                function initPricePredictionChart(chartData) {
-                    const ctx = document.getElementById('pricePredictionChart');
-                    if (!ctx) return;
-
-                    if (predictionChartInstance) {
-                        predictionChartInstance.destroy();
-                    }
-
-                    predictionChartInstance = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: chartData.labels || [],
-                            datasets: chartData.datasets || []
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: {
-                                mode: 'index',
-                                intersect: false
-                            },
-                            plugins: {
-                                legend: {
-                                    position: 'top',
-                                    labels: {
-                                        usePointStyle: true,
-                                        boxWidth: 8,
-                                        font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" }
-                                    }
-                                },
-                                tooltip: {
-                                    backgroundColor: 'rgba(15, 23, 42, 0.92)',
-                                    titleFont: { size: 12, weight: 'bold' },
-                                    bodyFont: { size: 11 },
-                                    padding: 10,
-                                    cornerRadius: 8,
-                                    callbacks: {
-                                        label: function(context) {
-                                            const val = context.raw;
-                                            if (val === null || val === undefined) return null;
-                                            return ' ' + context.dataset.label + ': ₹' + Number(val).toLocaleString('en-IN', {maximumFractionDigits: 2});
-                                        }
-                                    }
-                                }
-                            },
-                            scales: {
-                                x: {
-                                    grid: { display: false },
-                                    title: {
-                                        display: true,
-                                        text: 'Timeline: Historical Observations (MongoDB) → Next 7 Days (Forecast)',
-                                        font: { size: 11, weight: 'bold' },
-                                        color: '#64748b'
-                                    },
-                                    ticks: {
-                                        font: { size: 10 },
-                                        color: '#64748b',
-                                        maxRotation: 45
-                                    }
-                                },
-                                y: {
-                                    title: {
-                                        display: true,
-                                        text: 'Price in Rupees (₹)',
-                                        font: { size: 11, weight: 'bold' },
-                                        color: '#64748b'
-                                    },
-                                    ticks: {
-                                        font: { size: 10 },
-                                        color: '#64748b',
-                                        callback: function(val) {
-                                            return '₹' + Number(val).toLocaleString('en-IN');
-                                        }
-                                    },
-                                    grid: {
-                                        color: 'rgba(226, 232, 240, 0.6)'
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-
-                // Initial render on DOM load
-                document.addEventListener('DOMContentLoaded', function() {
-                    initPricePredictionChart(initialChartData);
-                });
-
-                // Filter Chart by Platform
-                window.filterPredictionChart = function(platform, btn) {
-                    if (!predictionChartInstance) return;
-
-                    document.querySelectorAll('.chart-filter-btn').forEach(b => {
-                        b.classList.remove('active', 'btn-white');
-                        b.classList.add('text-secondary');
-                    });
-                    if (btn) {
-                        btn.classList.add('active', 'btn-white');
-                        btn.classList.remove('text-secondary');
-                    }
-
-                    predictionChartInstance.data.datasets.forEach(ds => {
-                        if (platform === 'all' || ds.label.toLowerCase().includes(platform.toLowerCase())) {
-                            ds.hidden = false;
-                        } else {
-                            ds.hidden = true;
-                        }
-                    });
-                    predictionChartInstance.update();
-                };
-
-                // Live Refresh from FastAPI Backend
-                window.refreshFastApiPrediction = async function() {
-                    const btn = document.getElementById('btnRefreshPrediction');
-                    const icon = document.getElementById('refreshFastApiIcon');
-                    const text = document.getElementById('refreshFastApiText');
-                    if (btn) btn.disabled = true;
-                    if (icon) icon.className = 'fas fa-spinner fa-spin text-warning';
-                    if (text) text.innerText = 'Querying FastAPI...';
-
-                    try {
-                        const q = encodeURIComponent("{{ query }}");
-                        // Primary request to FastAPI /price-prediction endpoint
-                        let resp = null;
-                        try {
-                            resp = await fetch(`/price-prediction?query=${q}`);
-                        } catch(e) {
-                            // Fallback to Flask alias
-                            resp = await fetch(`/api/price-prediction?query=${q}`);
-                        }
-
-                        if (resp && resp.ok) {
-                            const data = await resp.json();
-                            if (data && data.chart) {
-                                initPricePredictionChart(data.chart);
-                                if (data.generated_at) {
-                                    const genEl = document.getElementById('predGeneratedAt');
-                                    if (genEl) genEl.innerText = data.generated_at;
-                                }
-                            }
-                        }
-                    } catch (err) {
-                        console.error('[FastAPI Prediction] Error refreshing predictions:', err);
-                    } finally {
-                        if (btn) btn.disabled = false;
-                        if (icon) icon.className = 'fas fa-bolt text-warning';
-                        if (text) text.innerText = 'Refresh via FastAPI';
-                    }
-                };
-            })();
-            </script>
             {% endif %}
 
             {% if similar_products and (similar_products.amazon or similar_products.flipkart or similar_products.meesho) %}
@@ -1597,25 +1686,25 @@
 
             <!-- ════ 1. SIDE-BY-SIDE PLATFORMS VIEW (DEFAULT PRIMARY VIEW) ════ -->
             <div id="viewPlatform">
-                {% set has_results = (platform_results.get('Amazon',[])|length > 0) or (platform_results.get('Flipkart',[])|length > 0) or (platform_results.get('Meesho',[])|length > 0) or (platform_results.get('GEC',[])|length > 0) %}
+                {% set has_results = (platform_results.get('Amazon',[])|length > 0) or (platform_results.get('Flipkart',[])|length > 0) or (platform_results.get('Meesho',[])|length > 0) or (platform_results.get('GEC ECom',[])|length > 0) %}
 
                 {% if has_results %}
                 <div class="row g-3 comparison-grid">
                     {% for platform, items in platform_results.items() %}
-                    <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="col-xl-3 col-lg-6 col-md-6">
                         <div class="card border-0 shadow-sm h-100 glass-card platform-column-card" style="border-radius:16px;">
                             <!-- Platform Vertical Header -->
                             <div class="card-header border-0 text-white text-center py-3 d-flex align-items-center justify-content-center
-                                {% if platform == 'Amazon' %}bg-amazon{% elif platform == 'Flipkart' %}bg-flipkart{% elif platform in ('GEC', 'gec', 'GEC ECom') %}bg-gec{% else %}bg-meesho{% endif %}"
+                                {% if platform == 'Amazon' %}bg-amazon{% elif platform == 'Flipkart' %}bg-flipkart{% elif platform == 'Meesho' %}bg-meesho{% else %}bg-gececom{% endif %}"
                                 style="border-radius: 16px 16px 0 0;">
                                 {% if platform == 'Amazon' %}
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon" style="height:20px; filter:brightness(0) invert(1); margin-right:8px;">
                                 {% elif platform == 'Flipkart' %}
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg" alt="Flipkart" style="height:20px; margin-right:8px;">
-                                {% elif platform in ('GEC', 'gec', 'GEC ECom') %}
-                                <span class="badge bg-white text-dark fw-bold me-2 px-2 py-0.5 shadow-xs"><i class="fas fa-store text-info me-1"></i>GEC</span>
-                                {% else %}
+                                {% elif platform == 'Meesho' %}
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/8/80/Meesho_Logo_Logo.svg" alt="Meesho" style="height:20px; filter:brightness(0) invert(1); margin-right:8px;">
+                                {% else %}
+                                <i class="fas fa-shopping-bag text-warning me-2 fs-5"></i>
                                 {% endif %}
                                 <span class="fw-bold fs-6">{{ platform }}</span>
                                 {% set p_stat_header = platform_status.get(platform, {}).get('status', 'unavailable') if platform_status else 'unavailable' %}
@@ -1857,6 +1946,19 @@
                                             data-product-url="{{ item.link or item.product_url or item.url }}">
                                         <i class="fas fa-bell me-1.5 text-warning"></i><span>🔔 Set Price Alert</span>
                                     </button>
+
+                                    <!-- AI Price Prediction Button -->
+                                    <button type="button"
+                                            class="btn btn-outline-info btn-sm w-100 mt-1.5 rounded-pill py-1.5 fw-semibold d-flex align-items-center justify-content-center btn-product-prediction"
+                                            onclick="openProductPredictionModal(this)"
+                                            data-product-name="{{ item.title }}"
+                                            data-product-image="{{ item.image or item.image_url }}"
+                                            data-platform="{{ platform }}"
+                                            data-current-price="{{ item.price_num or item.price }}"
+                                            data-product-url="{{ item.link or item.product_url or item.url }}"
+                                            title="View AI Linear Regression price prediction and 7-day forecast">
+                                        <i class="fas fa-brain me-1.5 text-primary"></i><span>📈 AI Price Prediction</span>
+                                    </button>
                                 </div>
                                 {% endfor %}
                                 {% else %}
@@ -1920,7 +2022,8 @@
                                         <span class="badge fw-bold px-2.5 py-1.5 rounded-pill" style="font-size:0.75rem;
                                             {% if q_item.platform == 'Amazon' %}background:#FF9900; color:#000;
                                             {% elif q_item.platform == 'Flipkart' %}background:#2874f0; color:#fff;
-                                            {% else %}background:#F43397; color:#fff;{% endif %}">
+                                            {% elif q_item.platform == 'Meesho' %}background:#F43397; color:#fff;
+                                            {% else %}background:#0284c7; color:#fff;{% endif %}">
                                             {{ q_item.platform }}
                                         </span>
                                     </td>
@@ -2258,7 +2361,7 @@
 
                                     <!-- 1. Quality Score (First Preference) -->
                                     <td style="background:rgba(14,165,233,0.03);">
-                                        {% if item.quality_score is defined and item.quality_score is not none and item.get('has_sufficient_data', True) %}
+                                        {% if item.quality_score is not none and item.get('has_sufficient_data', True) %}
                                         <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1 rounded-pill fw-bold d-inline-block" style="font-size:0.75rem;">
                                             <i class="fas fa-award me-1"></i>{{ item.quality_score|round|int }}/100
                                         </span>
@@ -2422,6 +2525,18 @@
                                                 style="font-size: 0.68rem;">
                                             <i class="fas fa-balance-scale me-1"></i><span>Add to Compare</span>
                                         </button>
+                                        <button type="button"
+                                                class="btn btn-outline-info btn-sm rounded-pill px-2.5 py-0.5 mt-1 fw-semibold d-block mx-auto btn-product-prediction"
+                                                onclick="openProductPredictionModal(this)"
+                                                data-product-name="{{ item.title }}"
+                                                data-product-image="{{ item.image or item.image_url }}"
+                                                data-platform="{{ item.platform }}"
+                                                data-current-price="{{ item.price_num or item.price }}"
+                                                data-product-url="{{ item.link or item.product_url or item.url }}"
+                                                title="View AI Price Prediction and 7-day forecast"
+                                                style="font-size: 0.68rem;">
+                                            <i class="fas fa-brain me-1 text-primary"></i><span>AI Forecast</span>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -2541,6 +2656,18 @@
                                 data-points='{{ (item.quality_points or []) | tojson }}'
                                 style="font-size: 0.72rem;">
                             <i class="fas fa-balance-scale me-1"></i><span>Add to Compare</span>
+                        </button>
+                        <button type="button"
+                                class="btn btn-outline-info btn-sm w-100 mt-1 rounded-pill py-1 fw-semibold d-flex align-items-center justify-content-center btn-product-prediction"
+                                onclick="openProductPredictionModal(this)"
+                                data-product-name="{{ item.title }}"
+                                data-product-image="{{ item.image or item.image_url }}"
+                                data-platform="{{ item.platform }}"
+                                data-current-price="{{ item.price_num or item.price }}"
+                                data-product-url="{{ item.link or item.product_url or item.url }}"
+                                title="View AI Linear Regression price prediction and 7-day forecast"
+                                style="font-size: 0.72rem;">
+                            <i class="fas fa-brain me-1.5 text-primary"></i><span>📈 AI Price Prediction</span>
                         </button>
                     </div>
                     {% endfor %}
@@ -3160,39 +3287,92 @@ function updateThemeIcon(isDark) {
     </div>
 
     <!-- ════════════════════════════════════════════════════════════════
-         🔔 SMARTBUY PRICE ALERT MODAL DIALOG
+         📈 SMARTBUY AI PRODUCT PRICE PREDICTION MODAL (LINEAR REGRESSION)
          ════════════════════════════════════════════════════════════════ -->
-    <div class="modal fade" id="priceAlertModal" tabindex="-1" aria-labelledby="priceAlertModalLabel" aria-hidden="true" style="z-index: 1070;">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="productPredictionModal" tabindex="-1" aria-labelledby="productPredictionModalLabel" aria-hidden="true" style="z-index: 1065;">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
                 <!-- Modal Header -->
-                <div class="modal-header text-white py-3 px-4 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow-xs" style="width: 38px; height: 38px;">
-                            <i class="fas fa-bell fs-5"></i>
+                <div class="modal-header text-white py-3 px-4 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; font-size: 1.4rem;">
+                            <i class="fas fa-brain"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="priceAlertModalLabel">Set Price Alert</h5>
-                            <small class="text-white-50" style="font-size: 0.76rem;">Instant email notification when price drops to your target</small>
+                            <h5 class="modal-title fw-bold mb-0" id="productPredictionModalLabel">AI Price Prediction &amp; 7-Day Forecast</h5>
+                            <div class="text-white-70 small">Machine Learning Linear Regression trained on MongoDB price history</div>
                         </div>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
+                <!-- Product Summary Sub-header -->
+                <div class="p-3 bg-light border-bottom d-flex align-items-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center gap-3 overflow-hidden">
+                        <img id="modalPredProductImg" src="" alt="Product" style="width: 52px; height: 52px; object-fit: contain; border-radius: 8px; background: #fff; padding: 4px; border: 1px solid #e2e8f0;">
+                        <div class="overflow-hidden">
+                            <h6 id="modalPredProductTitle" class="fw-bold text-dark mb-1 text-truncate" style="max-width: 460px;">Product Title</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <span id="modalPredPlatformBadge" class="badge bg-primary px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">Platform</span>
+                                <span class="text-muted small">Current Price: <strong id="modalPredCurrentPrice" class="text-dark">₹0</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                    <a id="modalPredStoreLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold text-nowrap">
+                        <i class="fas fa-external-link-alt me-1"></i>View Store
+                    </a>
+                </div>
+
                 <!-- Modal Body -->
-                <div class="modal-body p-4 bg-light">
+                <div class="modal-body p-4" id="modalPredBody">
+                    <!-- Dynamic Content will be injected here -->
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer bg-light py-2.5 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-bold" onclick="triggerAlertFromPredictionModal()">
+                        <i class="fas fa-bell me-1.5 text-warning"></i>Set Price Alert
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════
+         🔔 SMARTBUY PRICE ALERT MODAL DIALOG
+         ════════════════════════════════════════════════════════════════ -->
+    <div class="modal fade" id="priceAlertModal" tabindex="-1" aria-labelledby="priceAlertModalLabel" aria-hidden="true" style="z-index: 1070;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+                <!-- Modal Header -->
+                <div class="modal-header text-white py-3 px-4 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center shadow-sm" style="width: 50px; height: 50px; font-size: 1.45rem;">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title fw-bold mb-0" id="priceAlertModalLabel" style="font-size: 1.65rem;">Set Price Alert</h4>
+                            <div class="text-white-50" style="font-size: 1rem;">Instant email notification when price drops to your target</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="transform: scale(1.3);"></button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="modal-body p-4 p-md-5 bg-light">
                     <!-- Product Preview Mini Card -->
-                    <div class="p-3 bg-white rounded-3 border mb-3 shadow-xs">
+                    <div class="p-3.5 bg-white rounded-4 border mb-4 shadow-sm" style="padding: 20px 24px;">
                         <div class="d-flex align-items-center gap-3">
-                            <img id="paModalImage" src="" alt="Product" style="width: 75px; height: 75px; object-fit: contain; border-radius: 8px; border: 1px solid #e2e8f0; padding: 4px;" referrerpolicy="no-referrer" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\' fill=\'%2394a3b8\' viewBox=\'0 0 16 16\'><path d=\'M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z\'/><path d=\'M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z\'/></svg>';">
+                            <img id="paModalImage" src="" alt="Product" style="width: 95px; height: 95px; object-fit: contain; border-radius: 12px; border: 1.5px solid #e2e8f0; padding: 6px;" referrerpolicy="no-referrer" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\' fill=\'%2394a3b8\' viewBox=\'0 0 16 16\'><path d=\'M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z\'/><path d=\'M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z\'/></svg>';">
                             <div class="flex-grow-1 overflow-hidden">
-                                <span id="paModalPlatform" class="badge rounded-pill px-2.5 py-0.5 text-uppercase fw-bold mb-1" style="font-size:0.7rem;">Platform</span>
-                                <h6 id="paModalTitle" class="fw-bold text-dark mb-1 text-truncate" style="font-size:0.92rem;" title="">Product Name</h6>
+                                <span id="paModalPlatform" class="badge rounded-pill px-3 py-1 text-uppercase fw-bold mb-1" style="font-size:0.88rem;">Platform</span>
+                                <h5 id="paModalTitle" class="fw-bold text-dark mb-1 text-truncate" style="font-size:1.25rem; line-height: 1.35;" title="">Product Name</h5>
                                 <div class="d-flex align-items-baseline gap-2">
-                                    <span class="small text-muted">Current Price:</span>
-                                    <span id="paModalCurrentPrice" class="fw-bold text-primary fs-6">₹0</span>
+                                    <span class="text-muted" style="font-size:1.05rem;">Current Price:</span>
+                                    <span id="paModalCurrentPrice" class="fw-bold text-primary" style="font-size:1.55rem;">₹0</span>
                                 </div>
-                                <a id="paModalUrlLink" href="#" target="_blank" rel="noopener noreferrer" class="small text-muted text-truncate d-block mt-0.5" style="max-width:280px; font-size:0.72rem;">View Product Link</a>
+                                <a id="paModalUrlLink" href="#" target="_blank" rel="noopener noreferrer" class="text-muted text-truncate d-block mt-1" style="max-width:350px; font-size:0.95rem;">View Product Link</a>
                             </div>
                         </div>
                     </div>
@@ -3205,84 +3385,84 @@ function updateThemeIcon(isDark) {
                     <input type="hidden" id="paModalProductImage">
 
                     <!-- Target Price Input Group -->
-                    <div class="mb-3">
-                        <div class="d-flex align-items-center justify-content-between mb-1">
-                            <label for="paModalTargetPrice" class="form-label fw-bold text-dark small mb-0">
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label for="paModalTargetPrice" class="form-label fw-bold text-dark mb-0" style="font-size:1.18rem;">
                                 Target Price (₹) <span class="text-danger">*</span>
                             </label>
-                            <span class="text-muted small" style="font-size:0.72rem;">Notify me if price &le; this</span>
+                            <span class="text-muted" style="font-size:0.98rem;">Notify me if price &le; this</span>
                         </div>
                         <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0 fw-bold text-success">₹</span>
-                            <input type="number" id="paModalTargetPrice" class="form-control border-start-0 ps-1" placeholder="e.g. 25000" min="1" step="1" required oninput="calculateSavingsPreview()">
+                            <span class="input-group-text bg-white border-end-0 fw-bold text-success px-3" style="font-size:1.45rem;">₹</span>
+                            <input type="number" id="paModalTargetPrice" class="form-control border-start-0 ps-2 fw-bold" placeholder="e.g. 25000" min="1" step="1" required oninput="calculateSavingsPreview()" style="font-size:1.35rem; height:58px;">
                         </div>
 
                         <!-- Quick Discount Percentage Options (Presets + Custom % up to 100%) -->
-                        <div class="mt-2" id="paQuickButtonsWrapper">
-                            <div class="d-flex align-items-center gap-1.5 flex-wrap">
-                                <span class="text-muted small fw-semibold me-1" style="font-size:0.72rem;">Quick Target:</span>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="5" style="font-size:0.72rem;" onclick="setDiscountTarget(5)">-5%</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="10" style="font-size:0.72rem;" onclick="setDiscountTarget(10)">-10%</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="15" style="font-size:0.72rem;" onclick="setDiscountTarget(15)">-15%</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="20" style="font-size:0.72rem;" onclick="setDiscountTarget(20)">-20%</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="25" style="font-size:0.72rem;" onclick="setDiscountTarget(25)">-25%</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill pa-pct-pill" data-pct="50" style="font-size:0.72rem;" onclick="setDiscountTarget(50)">-50%</button>
+                        <div class="mt-2.5" id="paQuickButtonsWrapper">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="text-muted fw-bold me-1" style="font-size:1rem;">Quick Target:</span>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill pa-pct-pill" data-pct="5" style="font-size:0.95rem;" onclick="setDiscountTarget(5)">-5%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill pa-pct-pill" data-pct="10" style="font-size:0.95rem;" onclick="setDiscountTarget(10)">-10%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill pa-pct-pill" data-pct="15" style="font-size:0.95rem;" onclick="setDiscountTarget(15)">-15%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill pa-pct-pill" data-pct="20" style="font-size:0.95rem;" onclick="setDiscountTarget(20)">-20%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill pa-pct-pill" data-pct="25" style="font-size:0.95rem;" onclick="setDiscountTarget(25)">-25%</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill pa-pct-pill" data-pct="50" style="font-size:0.95rem;" onclick="setDiscountTarget(50)">-50%</button>
 
                                 <!-- Custom Optional Discount % Input (up to 100%) -->
-                                <div class="input-group input-group-sm ms-sm-auto mt-1 mt-sm-0" style="width: 148px;" title="Optional: enter any custom discount up to 100%">
-                                    <span class="input-group-text py-0 px-1.5 bg-light text-muted fw-bold" style="font-size:0.70rem;">-</span>
+                                <div class="input-group input-group-sm ms-sm-auto mt-1 mt-sm-0" style="width: 175px;" title="Optional: enter any custom discount up to 100%">
+                                    <span class="input-group-text py-1 px-2 bg-light text-muted fw-bold" style="font-size:0.9rem;">-</span>
                                     <input type="number"
                                            id="paModalCustomPct"
-                                           class="form-control form-control-sm text-center py-0 px-1 fw-bold"
+                                           class="form-control text-center py-1 px-1 fw-bold"
                                            placeholder="Custom %"
                                            min="1"
                                            max="100"
                                            step="any"
-                                           style="font-size:0.74rem; height:24px;"
+                                           style="font-size:0.95rem; height:36px;"
                                            oninput="onCustomDiscountInput(this.value)">
-                                    <span class="input-group-text py-0 px-1.5 bg-light text-muted fw-bold" style="font-size:0.70rem;">% off</span>
+                                    <span class="input-group-text py-1 px-2 bg-light text-muted fw-bold" style="font-size:0.9rem;">% off</span>
                                 </div>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center mt-1">
-                                <div id="paModalDiffNote" class="small text-muted" style="font-size:0.75rem;"></div>
-                                <span class="text-muted" style="font-size:0.68rem; font-style:italic;">(Discount optional up to 100%)</span>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div id="paModalDiffNote" class="text-success fw-bold" style="font-size:1.02rem;"></div>
+                                <span class="text-muted" style="font-size:0.88rem; font-style:italic;">(Discount optional up to 100%)</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Email Input Group -->
-                    <div class="mb-3">
-                        <label for="paModalEmail" class="form-label fw-bold text-dark small mb-1">
+                    <div class="mb-4">
+                        <label for="paModalEmail" class="form-label fw-bold text-dark mb-2" style="font-size:1.18rem;">
                             Notification Email Address <span class="text-danger">*</span>
                         </label>
                         <div class="input-group">
-                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="fas fa-envelope"></i></span>
-                            <input type="email" id="paModalEmail" class="form-control border-start-0 ps-1" placeholder="name@example.com" value="{{ current_user.email if current_user else '' }}" required>
+                            <span class="input-group-text bg-white border-end-0 text-muted px-3" style="font-size:1.25rem;"><i class="fas fa-envelope"></i></span>
+                            <input type="email" id="paModalEmail" class="form-control border-start-0 ps-2" placeholder="name@example.com" value="{{ current_user.email if current_user else '' }}" required style="font-size:1.18rem; height:56px;">
                         </div>
-                        <div class="form-text text-muted" style="font-size:0.72rem;">
+                        <div class="form-text text-muted mt-2" style="font-size:0.95rem;">
                             <i class="fas fa-lock me-1 text-success"></i>We will only email you when this product drops to or below your target price.
                         </div>
                     </div>
 
                     <!-- Feedback Alert Boxes -->
-                    <div id="paModalErrorAlert" class="alert alert-danger py-2 px-3 small d-none rounded-3" role="alert"></div>
-                    <div id="paModalSuccessAlert" class="alert alert-success py-3 px-3 d-none rounded-3" role="alert">
-                        <div class="fw-bold mb-1 d-flex align-items-center gap-1.5">
-                            <i class="fas fa-check-circle"></i> Price Alert Created!
+                    <div id="paModalErrorAlert" class="alert alert-danger py-3 px-4 d-none rounded-3" style="font-size:1.08rem;" role="alert"></div>
+                    <div id="paModalSuccessAlert" class="alert alert-success py-4 px-4 d-none rounded-4 shadow-sm" role="alert">
+                        <div class="fw-bold mb-2 d-flex align-items-center gap-2" style="font-size:1.35rem;">
+                            <i class="fas fa-check-circle fs-3 text-success"></i> Price Alert Created!
                         </div>
-                        <p class="mb-2 small" id="paSuccessMsgText"></p>
+                        <p class="mb-3" id="paSuccessMsgText" style="font-size:1.1rem; line-height:1.5;"></p>
                         <div class="d-flex gap-2">
-                            <a href="/my-price-alerts" class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold">View My Alerts &rarr;</a>
-                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1" data-bs-dismiss="modal">Close</button>
+                            <a href="/my-price-alerts" class="btn btn-success rounded-pill px-4 py-2 fw-bold" style="font-size:1.08rem;">View My Alerts &rarr;</a>
+                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2" data-bs-dismiss="modal" style="font-size:1.08rem;">Close</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="modal-footer bg-white py-2.5 px-4 d-flex justify-content-between" id="paModalFooter">
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-xs" id="paModalSubmitBtn" onclick="submitPriceAlertForm()">
-                        <i class="fas fa-bell me-1.5"></i>Set Price Alert
+                <div class="modal-footer bg-white py-3 px-4 px-md-5 d-flex justify-content-between" id="paModalFooter">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 py-2" data-bs-dismiss="modal" style="font-size:1.12rem;">Cancel</button>
+                    <button type="button" class="btn btn-success rounded-pill px-5 py-2.5 fw-bold shadow-sm" id="paModalSubmitBtn" onclick="submitPriceAlertForm()" style="font-size:1.22rem;">
+                        <i class="fas fa-bell me-2"></i>Set Price Alert
                     </button>
                 </div>
             </div>
@@ -3511,6 +3691,709 @@ function updateThemeIcon(isDark) {
 
     <script src="{{ url_for('static', filename='js/url_search.js') }}"></script>
     <script src="{{ url_for('static', filename='js/product_compare.js') }}"></script>
+
+<script>
+    // ════════════════════ AI PRICE PREDICTION & CHART.JS ENGINE ════════════════════
+    const predictionPayload = {{ price_predictions | tojson | safe if price_predictions else '{}' }};
+    const predictionCharts = {};
+
+    function scrollToPredictionSection() {
+        const sec = document.getElementById('aiPricePredictionSection');
+        if (sec) {
+            sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            sec.style.outline = '2px solid #6366f1';
+            setTimeout(() => { sec.style.outline = ''; }, 2000);
+        }
+    }
+
+    function selectPredictionPlatform(plat) {
+        const platId = plat.replace(/\s+/g, '_');
+        const tabs = document.querySelectorAll('#predPlatformTabs .platform-predict-tab');
+        tabs.forEach(t => {
+            const isMatch = (t.getAttribute('data-platform') === plat);
+            t.classList.toggle('active', isMatch);
+            if (isMatch) {
+                t.classList.remove('btn-light', 'text-dark');
+                t.classList.add('btn-primary', 'text-white');
+            } else {
+                t.classList.remove('btn-primary', 'text-white');
+                t.classList.add('btn-light', 'text-dark');
+            }
+        });
+
+        const panels = document.querySelectorAll('.pred-platform-panel');
+        panels.forEach(p => {
+            p.classList.add('d-none');
+        });
+
+        const activePanel = document.getElementById('predPanel_' + platId);
+        if (activePanel) {
+            activePanel.classList.remove('d-none');
+            setTimeout(() => {
+                if (plat === 'all') {
+                    renderAllPlatformsChart();
+                } else {
+                    renderPlatformChart(plat);
+                }
+            }, 60);
+        }
+    }
+
+    function renderAllPlatformsChart() {
+        if (!predictionPayload || !predictionPayload.predictions) return;
+        const canvas = document.getElementById('chart_all');
+        if (!canvas) return;
+
+        if (predictionCharts['all']) {
+            try { predictionCharts['all'].resize(); } catch(e) {}
+            return;
+        }
+
+        const platConfigs = {
+            'Amazon': { color: '#ff9900', label: 'Amazon' },
+            'Flipkart': { color: '#2874f0', label: 'Flipkart' },
+            'Meesho': { color: '#f43397', label: 'Meesho' },
+            'GEC ECom': { color: '#0284c7', label: 'GEC ECom' }
+        };
+
+        const allDatesSet = new Set();
+        Object.values(predictionPayload.predictions).forEach(pData => {
+            if (pData.history) {
+                pData.history.forEach(h => { if (h.date) allDatesSet.add(h.date); });
+            }
+        });
+        const historyDates = Array.from(allDatesSet).sort();
+
+        const forecastLabels = [];
+        for (let i = 1; i <= 7; i++) {
+            forecastLabels.push('Day +' + i);
+        }
+        const allLabels = [...historyDates, ...forecastLabels];
+
+        const datasets = [];
+        Object.entries(platConfigs).forEach(([platName, cfg]) => {
+            const pData = predictionPayload.predictions[platName];
+            if (!pData) return;
+
+            const histMap = {};
+            (pData.history || []).forEach(h => { histMap[h.date] = h.price; });
+
+            const historyData = [];
+            historyDates.forEach(d => {
+                historyData.push(histMap[d] !== undefined ? histMap[d] : null);
+            });
+            forecastLabels.forEach(() => historyData.push(null));
+
+            const forecastData = [];
+            historyDates.forEach(() => forecastData.push(null));
+            if (pData.history && pData.history.length > 0) {
+                forecastData[historyDates.length - 1] = pData.history[pData.history.length - 1].price;
+            }
+            (pData.daily_forecast || []).forEach(f => {
+                forecastData.push(f.predicted_price);
+            });
+
+            // 1. History dataset (solid)
+            datasets.push({
+                label: platName + ' (History)',
+                data: historyData,
+                borderColor: cfg.color,
+                backgroundColor: cfg.color + '15',
+                borderWidth: 2.8,
+                pointBackgroundColor: cfg.color,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1.5,
+                pointRadius: 4.5,
+                pointHoverRadius: 7,
+                tension: 0.25,
+                fill: false
+            });
+
+            // 2. Forecast dataset (dashed)
+            datasets.push({
+                label: platName + ' (7-Day Forecast)',
+                data: forecastData,
+                borderColor: cfg.color,
+                backgroundColor: cfg.color + '10',
+                borderWidth: 2.8,
+                borderDash: [5, 4],
+                pointBackgroundColor: cfg.color,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1.5,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+                tension: 0.1,
+                fill: false
+            });
+        });
+
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+        const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+        try {
+            const ctx = canvas.getContext('2d');
+            predictionCharts['all'] = new Chart(ctx, {
+                type: 'line',
+                data: { labels: allLabels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: textColor, font: { size: 12, weight: '600' }, boxWidth: 14, padding: 10 }
+                        },
+                        tooltip: {
+                            backgroundColor: isDarkMode ? '#1e293b' : '#0f172a',
+                            titleColor: '#ffffff',
+                            bodyColor: '#e2e8f0',
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.parsed.y !== null && context.parsed.y !== undefined) {
+                                        return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString('en-IN', {
+                                            minimumFractionDigits: 0,
+                                            maximumFractionDigits: 0
+                                        });
+                                    }
+                                    return null;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, maxRotation: 45, font: { size: 11, weight: '550' } }
+                        },
+                        y: {
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 12, weight: '550' },
+                                callback: function(val) { return '₹' + Number(val).toLocaleString('en-IN'); }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch(err) {
+            console.error('Failed to init All Platforms chart:', err);
+        }
+    }
+
+    function renderPlatformChart(plat) {
+        if (!predictionPayload || !predictionPayload.predictions) return;
+        const pData = predictionPayload.predictions[plat];
+        if (!pData || !pData.has_prediction) return;
+
+        const platId = plat.replace(/\s+/g, '_');
+        const canvas = document.getElementById('chart_' + platId);
+        if (!canvas) return;
+
+        if (predictionCharts[plat]) {
+            try { predictionCharts[plat].resize(); } catch (e) {}
+            return;
+        }
+
+        const colorMap = {
+            'Amazon': '#ff9900',
+            'Flipkart': '#2874f0',
+            'Meesho': '#f43397',
+            'GEC ECom': '#0284c7'
+        };
+        const pColor = colorMap[plat] || '#2563eb';
+
+        const history = pData.history || [];
+        const forecast = pData.daily_forecast || [];
+
+        const labels = [];
+        const historyPrices = [];
+        const forecastPrices = [];
+
+        history.forEach(h => {
+            labels.push(h.date);
+            historyPrices.push(h.price);
+            forecastPrices.push(null);
+        });
+
+        if (history.length > 0 && forecast.length > 0) {
+            forecastPrices[forecastPrices.length - 1] = history[history.length - 1].price;
+        }
+
+        forecast.forEach(f => {
+            labels.push(f.date + ' (+' + f.day + 'd)');
+            historyPrices.push(null);
+            forecastPrices.push(f.predicted_price);
+        });
+
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+        const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+        try {
+            const ctx = canvas.getContext('2d');
+            predictionCharts[plat] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Recorded History (' + plat + ')',
+                            data: historyPrices,
+                            borderColor: pColor,
+                            backgroundColor: pColor + '18',
+                            borderWidth: 2.8,
+                            pointBackgroundColor: pColor,
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6,
+                            pointHoverRadius: 9,
+                            tension: 0.2,
+                            fill: false
+                        },
+                        {
+                            label: '7-Day Linear Forecast (' + plat + ')',
+                            data: forecastPrices,
+                            borderColor: pColor,
+                            backgroundColor: pColor + '20',
+                            borderWidth: 2.8,
+                            borderDash: [6, 4],
+                            pointBackgroundColor: pColor,
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6.5,
+                            pointHoverRadius: 9,
+                            tension: 0,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { color: textColor, font: { size: 14, weight: '700' }, boxWidth: 20, padding: 14 }
+                        },
+                        tooltip: {
+                            backgroundColor: isDarkMode ? '#1e293b' : '#0f172a',
+                            titleColor: '#ffffff',
+                            bodyColor: '#e2e8f0',
+                            padding: 12,
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.parsed.y !== null && context.parsed.y !== undefined) {
+                                        return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString('en-IN', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        });
+                                    }
+                                    return null;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, maxRotation: 45, font: { size: 12, weight: '550' } }
+                        },
+                        y: {
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 12, weight: '550' },
+                                callback: function(val) { return '₹' + Number(val).toLocaleString('en-IN'); }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('Failed to initialize Chart for ' + plat + ':', err);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            selectPredictionPlatform('all');
+        }, 150);
+    });
+
+    // ════════════════════ SINGLE PRODUCT PREDICTION MODAL LOGIC ════════════════════
+    let productModalChart = null;
+    let currentModalProductData = {};
+
+    function openProductPredictionModal(btn) {
+        if (!btn) return;
+        const productName = btn.getAttribute('data-product-name') || '';
+        const platform = btn.getAttribute('data-platform') || '';
+        const currentPrice = btn.getAttribute('data-current-price') || '';
+        const productImage = btn.getAttribute('data-product-image') || '';
+        const productUrl = btn.getAttribute('data-product-url') || '';
+
+        currentModalProductData = {
+            productName: productName,
+            platform: platform,
+            currentPrice: currentPrice,
+            productImage: productImage,
+            productUrl: productUrl
+        };
+
+        const titleEl = document.getElementById('modalPredProductTitle');
+        const imgEl = document.getElementById('modalPredProductImg');
+        const platEl = document.getElementById('modalPredPlatformBadge');
+        const priceEl = document.getElementById('modalPredCurrentPrice');
+        const linkEl = document.getElementById('modalPredStoreLink');
+        const bodyEl = document.getElementById('modalPredBody');
+
+        if (titleEl) titleEl.textContent = productName;
+        if (imgEl) {
+            imgEl.src = productImage || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="%2394a3b8" viewBox="0 0 16 16"><path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/></svg>';
+        }
+        if (platEl) {
+            platEl.textContent = platform || 'Marketplace';
+            if (platform === 'Amazon') platEl.style.backgroundColor = '#ff9900';
+            else if (platform === 'Flipkart') platEl.style.backgroundColor = '#2874f0';
+            else if (platform === 'Meesho') platEl.style.backgroundColor = '#f43397';
+            else platEl.style.backgroundColor = '#0284c7';
+        }
+        if (priceEl) {
+            priceEl.textContent = currentPrice ? (typeof currentPrice === 'number' ? '₹' + currentPrice.toLocaleString('en-IN') : (currentPrice.toString().startsWith('₹') ? currentPrice : '₹' + currentPrice)) : 'Current';
+        }
+        if (linkEl) {
+            if (productUrl && productUrl !== '#' && !productUrl.startsWith('javascript:')) {
+                linkEl.href = productUrl;
+                linkEl.style.display = 'inline-block';
+            } else {
+                linkEl.style.display = 'none';
+            }
+        }
+
+        bodyEl.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Loading prediction...</span>
+                </div>
+                <h6 class="fw-bold text-dark">Analyzing Historical Price Data with Machine Learning...</h6>
+                <p class="text-muted small mb-0">Fitting Scikit-Learn Linear Regression model from MongoDB price observations</p>
+            </div>
+        `;
+
+        const modalEl = document.getElementById('productPredictionModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        const apiUrl = `/api/price-prediction?product_name=${encodeURIComponent(productName)}&platform=${encodeURIComponent(platform)}&current_price=${encodeURIComponent(currentPrice)}`;
+        fetch(apiUrl)
+            .then(res => res.json())
+            .then(data => {
+                const pred = data.prediction || data;
+                if (!pred || pred.success === false) {
+                    renderModalError(data.error || data.message || 'Unable to retrieve prediction at this time.');
+                    return;
+                }
+                renderModalPredictionContent(pred);
+            })
+            .catch(err => {
+                console.error('Prediction fetch error:', err);
+                renderModalError('Failed to communicate with prediction service. Please ensure server is running.');
+            });
+    }
+
+    function renderModalError(msg) {
+        const bodyEl = document.getElementById('modalPredBody');
+        if (!bodyEl) return;
+        bodyEl.innerHTML = `
+            <div class="alert alert-danger rounded-4 p-4 text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2 text-danger"></i>
+                <h6 class="fw-bold mb-1">Prediction Error</h6>
+                <p class="small mb-0">${msg}</p>
+            </div>
+        `;
+    }
+
+    function renderModalPredictionContent(pred) {
+        const bodyEl = document.getElementById('modalPredBody');
+        if (!bodyEl) return;
+
+        if (!pred.has_prediction) {
+            bodyEl.innerHTML = `
+                <div class="card border-0 rounded-4 p-4 text-center bg-light shadow-sm">
+                    <div class="rounded-circle bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center mx-auto mb-3" style="width: 64px; height: 64px; font-size: 1.8rem;">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Insufficient Historical Price Data</h5>
+                    <p class="text-muted small mb-3" style="max-width: 520px; margin: 0 auto; line-height: 1.6;">
+                        ${pred.message || 'This product requires at least 3 distinct historical price observations to train our AI Linear Regression model accurately without generating ungrounded estimates.'}
+                    </p>
+                    <div class="d-inline-flex flex-wrap gap-2 justify-content-center align-items-center p-2.5 bg-white rounded-3 border mb-3">
+                        <span class="badge bg-secondary">Recorded Data Points: <strong>${pred.data_points_count || 1}</strong></span>
+                        <span class="badge bg-primary">Current Price: <strong>${pred.current_price_formatted || ('₹' + (pred.current_price || ''))}</strong></span>
+                        <span class="badge bg-info text-dark">Platform: <strong>${pred.platform || 'Online'}</strong></span>
+                    </div>
+                    <div class="alert alert-info py-2 px-3 small rounded-3 mb-0" style="font-size:0.8rem;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Automated Tracking Active:</strong> SmartBuy automatically records price observations in MongoDB on every search. Linear Regression 7-day forecasting will automatically unlock once 3 observations are recorded.
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const badgeClass = pred.direction === 'drop' ? 'bg-success' : (pred.direction === 'hike' ? 'bg-danger' : 'bg-primary');
+        const changeSign = (pred.price_difference && pred.price_difference > 0) ? '+' : '';
+        const diffFormatted = changeSign + (pred.price_difference_formatted || ('₹' + pred.price_difference));
+        const pctFormatted = changeSign + (pred.percentage_change_formatted || (pred.percentage_change + '%'));
+
+        const forecastCardsHtml = (pred.daily_forecast || []).map(f => `
+            <div class="col">
+                <div class="p-2 bg-white rounded-3 border shadow-xs text-center">
+                    <div class="text-muted small" style="font-size:0.65rem;">Day +${f.day}</div>
+                    <div class="fw-bold text-dark" style="font-size:0.8rem;">${f.predicted_price_formatted}</div>
+                    <div class="text-muted" style="font-size:0.62rem;">${f.date.slice(5)}</div>
+                </div>
+            </div>
+        `).join('');
+
+        bodyEl.innerHTML = `
+            <!-- Top Metrics Grid -->
+            <div class="row g-2 mb-3 text-center">
+                <div class="col-6 col-md-3">
+                    <div class="p-2.5 rounded-3 bg-light border">
+                        <div class="text-muted small fw-semibold" style="font-size:0.75rem;">Current Price</div>
+                        <div class="fs-5 fw-extrabold text-dark">${pred.current_price_formatted}</div>
+                        <div class="text-muted" style="font-size:0.68rem;">Recorded Price</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2.5 rounded-3 border" style="background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.25) !important;">
+                        <div class="text-primary small fw-semibold" style="font-size:0.75rem;">7-Day Forecast</div>
+                        <div class="fs-5 fw-extrabold text-primary">${pred.predicted_price_formatted}</div>
+                        <div class="text-muted" style="font-size:0.68rem;">By ${pred.prediction_date}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2.5 rounded-3 bg-light border">
+                        <div class="text-muted small fw-semibold" style="font-size:0.75rem;">Expected Change</div>
+                        <div class="fs-5 fw-extrabold ${pred.direction === 'drop' ? 'text-success' : (pred.direction === 'hike' ? 'text-danger' : 'text-primary')}">
+                            ${diffFormatted}
+                        </div>
+                        <div class="badge ${badgeClass}" style="font-size:0.65rem;">${pctFormatted}</div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-2.5 rounded-3 bg-light border">
+                        <div class="text-muted small fw-semibold" style="font-size:0.75rem;">AI Recommendation</div>
+                        <div class="fw-bold mt-1" style="font-size:0.78rem; line-height: 1.2;">
+                            <span class="badge ${badgeClass} text-wrap py-1 px-2">
+                                ${pred.recommendation || pred.trend_label}
+                            </span>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size:0.65rem;">R² Score: ${(pred.r2_score !== undefined && pred.r2_score !== null) ? Number(pred.r2_score).toFixed(2) : 'N/A'}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="card border rounded-4 p-3 mb-3 shadow-xs">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="fw-bold text-dark mb-0" style="font-size: 0.88rem;">
+                        <i class="fas fa-chart-line text-primary me-1.5"></i>Historical Prices &amp; 7-Day Linear Regression Prediction
+                    </h6>
+                    <span class="badge bg-light text-secondary border small" style="font-size:0.7rem;">
+                        ${pred.data_points_count} Data Points
+                    </span>
+                </div>
+                <div style="position: relative; height: 230px;">
+                    <canvas id="productModalPredictionChart"></canvas>
+                </div>
+                <div class="d-flex align-items-center justify-content-center gap-4 mt-2 small text-muted" style="font-size:0.75rem;">
+                    <div class="d-flex align-items-center gap-1.5">
+                        <span style="display:inline-block; width:16px; height:3px; background:#2563eb; border-radius:2px;"></span>
+                        <span>Historical Actual Prices (Solid)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1.5">
+                        <span style="display:inline-block; width:16px; height:0px; border-top:2.5px dashed #2563eb;"></span>
+                        <span>7-Day Linear Prediction (Dashed)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7-Day Breakdown Table / Pills -->
+            <div class="card border-0 bg-light rounded-4 p-3">
+                <h6 class="fw-bold text-dark mb-2" style="font-size: 0.82rem;">
+                    <i class="fas fa-calendar-alt text-primary me-1.5"></i>Next 7 Days Day-by-Day Forecast
+                </h6>
+                <div class="row row-cols-2 row-cols-md-7 g-1.5 text-center">
+                    ${forecastCardsHtml}
+                </div>
+            </div>
+        `;
+
+        setTimeout(() => {
+            renderProductModalChart(pred);
+        }, 50);
+    }
+
+    function renderProductModalChart(pred) {
+        const canvas = document.getElementById('productModalPredictionChart');
+        if (!canvas) return;
+
+        if (productModalChart) {
+            try { productModalChart.destroy(); } catch (e) {}
+            productModalChart = null;
+        }
+
+        const colorMap = {
+            'Amazon': '#ff9900',
+            'Flipkart': '#2874f0',
+            'Meesho': '#f43397',
+            'GEC ECom': '#0284c7',
+            'GEC E-Commerce': '#0284c7'
+        };
+        const mainColor = colorMap[pred.platform] || '#4f46e5';
+
+        const history = pred.history || [];
+        const forecast = pred.daily_forecast || [];
+
+        const labels = [];
+        const historyPrices = [];
+        const forecastPrices = [];
+
+        history.forEach(h => {
+            labels.push(h.date);
+            historyPrices.push(h.price);
+            forecastPrices.push(null);
+        });
+
+        if (history.length > 0 && forecast.length > 0) {
+            forecastPrices[forecastPrices.length - 1] = history[history.length - 1].price;
+        }
+
+        forecast.forEach(f => {
+            labels.push(f.date + ' (+' + f.day + 'd)');
+            historyPrices.push(null);
+            forecastPrices.push(f.predicted_price);
+        });
+
+        const isDarkMode = document.body.classList.contains('dark-mode');
+        const textColor = isDarkMode ? '#cbd5e1' : '#475569';
+        const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+        const ctx = canvas.getContext('2d');
+        productModalChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Historical Prices (' + (pred.platform || 'Actual') + ')',
+                        data: historyPrices,
+                        borderColor: mainColor,
+                        backgroundColor: mainColor + '18',
+                        borderWidth: 2.8,
+                        pointBackgroundColor: mainColor,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5.5,
+                        pointHoverRadius: 8,
+                        tension: 0.15,
+                        fill: false
+                    },
+                    {
+                        label: 'Linear Regression Forecast (7 Days)',
+                        data: forecastPrices,
+                        borderColor: mainColor,
+                        backgroundColor: mainColor + '20',
+                        borderWidth: 2.8,
+                        borderDash: [6, 4],
+                        pointBackgroundColor: mainColor,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { color: textColor, font: { size: 12, weight: '600' }, boxWidth: 16 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.parsed.y !== null && context.parsed.y !== undefined) {
+                                    return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString('en-IN', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2
+                                    });
+                                }
+                                return null;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: textColor, maxRotation: 45, font: { size: 10 } }
+                    },
+                    y: {
+                        grid: { color: gridColor },
+                        ticks: {
+                            color: textColor,
+                            font: { size: 11 },
+                            callback: function(val) { return '₹' + Number(val).toLocaleString('en-IN'); }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function triggerAlertFromPredictionModal() {
+        const modalEl = document.getElementById('productPredictionModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+
+        setTimeout(() => {
+            if (typeof openPriceAlertModal === 'function') {
+                const fakeBtn = {
+                    getAttribute: function(attr) {
+                        if (attr === 'data-product-name') return currentModalProductData.productName;
+                        if (attr === 'data-product-image') return currentModalProductData.productImage;
+                        if (attr === 'data-platform') return currentModalProductData.platform;
+                        if (attr === 'data-current-price') return currentModalProductData.currentPrice;
+                        if (attr === 'data-product-url') return currentModalProductData.productUrl;
+                        return '';
+                    }
+                };
+                openPriceAlertModal(fakeBtn);
+            }
+        }, 350);
+    }
+</script>
+
 </body>
 </html>
 
