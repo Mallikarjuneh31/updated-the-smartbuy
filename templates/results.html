@@ -3745,7 +3745,10 @@ function updateThemeIcon(isDark) {
         if (!canvas) return;
 
         if (predictionCharts['all']) {
-            try { predictionCharts['all'].resize(); } catch(e) {}
+            try { 
+                predictionCharts['all'].resize(); 
+                predictionCharts['all'].update();
+            } catch(e) {}
             return;
         }
 
@@ -3896,7 +3899,10 @@ function updateThemeIcon(isDark) {
         if (!canvas) return;
 
         if (predictionCharts[plat]) {
-            try { predictionCharts[plat].resize(); } catch (e) {}
+            try { 
+                predictionCharts[plat].resize(); 
+                predictionCharts[plat].update();
+            } catch (e) {}
             return;
         }
 

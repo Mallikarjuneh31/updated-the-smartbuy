@@ -97,6 +97,30 @@ def _extract_significant_tokens(text: str) -> List[str]:
     return tokens
 
 
+SCRAPE_NOISE_RE = re.compile(
+    r'^(?:(?:currently\s*unavailable|add\s*to\s*compare|sponsored|deal\s*of\s*the\s*day|best\s*seller)\s*)+',
+    re.IGNORECASE
+)
+RATING_NOISE_RE = re.compile(
+    r'\d+(?:\.\d+)?(?:\s*,\s*\d+)*\s*(?:ratings?|reviews?|ra\b).*$',
+    re.IGNORECASE
+)
+
+
+def clean_product_title(title: str) -> str:
+    """
+    Remove marketplace scraping noise, comparison prefixes, and trailing rating fragments.
+    E.g. 'Add to CompareVivo T4 5G ...4.423,748 Ra' -> 'Vivo T4 5G'
+    """
+    if not title:
+        return ""
+    t = str(title).strip()
+    t = SCRAPE_NOISE_RE.sub('', t).strip()
+    t = RATING_NOISE_RE.sub('', t).strip()
+    t = re.sub(r'^(?:currently\s*unavailable)?\s*add\s*to\s*compare\s*', '', t, flags=re.I).strip()
+    return t
+
+
 def compute_canonical_key(
     title: str,
     brand: Optional[str] = None,
@@ -111,7 +135,7 @@ def compute_canonical_key(
       'boAt Airdopes 141 True Wireless Earbuds' -> 'boat_airdopes_141'
       'Ant Esports GM320 RGB Optical Wired Gaming Mouse' -> 'ant_esports_gm320'
     """
-    clean_title = (title or "").strip()
+    clean_title = clean_product_title(title)
     if not clean_title:
         return ""
     norm_t = normalize_title(clean_title)
@@ -153,7 +177,8 @@ def compute_canonical_key(
     if v_attrs.get('weight'):
         v_parts.append(re.sub(r'\s+', '', str(v_attrs['weight']).lower()))
     pq = v_attrs.get('pack_quantity')
-    if pq and int(pq) > 1:
+    # Only include pack quantity if > 1 and title explicitly mentions a pack/set/combo phrase
+    if pq and int(pq) > 1 and re.search(r'\b(?:pack|combo|set|pcs|pieces)\b', clean_title.lower()):
         v_parts.append('pack' + str(pq))
 
     v_str = '_'.join(v_parts)
@@ -164,14 +189,43 @@ def compute_canonical_key(
     raw_key = '_'.join(p for p in key_parts if p)
     raw_key = re.sub(r'[^a-z0-9_]', '', raw_key)
     raw_key = re.sub(r'_+', '_', raw_key).strip('_')
-    return raw_key
+
+    # Deduplicate repeated adjacent words in raw_key
+    parts = raw_key.split('_')
+    deduped = []
+    for part in parts:
+        if not deduped or part != deduped[-1]:
+            deduped.append(part)
+    return '_'.join(deduped)
+
+
+def extract_canonical_family_key(canonical_key: str) -> str:
+    """
+    Extract the base product family key without secondary variant attributes
+    (e.g., 'apple_iphone_15_128gb' -> 'apple_iphone_15', 'samsung_galaxy_tab_64gb' -> 'samsung_galaxy_tab').
+    Allows related storage or color variants of the same product to share price trend intelligence.
+    """
+    if not canonical_key:
+        return ""
+    ck = str(canonical_key).strip().lower()
+    # Strip networking suffix
+    ck = re.sub(r'_(?:4g|5g|lte|wifi|wi_fi)(?=_|$)', '', ck)
+    # Strip storage / RAM
+    ck = re.sub(r'_(?:\d+)(?:gb|tb|mb)(?=_|$)', '', ck)
+    # Strip colors
+    ck = re.sub(r'_(?:black|blue|white|green|silver|gold|grey|gray|pink|purple|red|yellow|orange)(?=_|$)', '', ck)
+    # Strip pack
+    ck = re.sub(r'_pack\d+(?=_|$)', '', ck)
+    # Strip trailing 5g/4g again if left
+    ck = re.sub(r'_(?:4g|5g|lte|wifi|wi_fi)(?=_|$)', '', ck)
+    return ck.strip('_')
 
 
 _backfill_done = False
 
 def migrate_backfill_canonical_keys() -> int:
     """
-    Backfill canonical_key for existing price_history records missing it.
+    Backfill canonical_key for existing price_history records missing it or with legacy corrupted keys.
     Ensures every product's price history is queryable by its isolated canonical_key.
     Runs once per process lifecycle or on demand.
     """
@@ -184,6 +238,8 @@ def migrate_backfill_canonical_keys() -> int:
         return 0
 
     try:
+        updated = 0
+        # 1. Fill missing canonical keys
         cursor = database.db.price_history.find({
             "$or": [
                 {"canonical_key": {"$exists": False}},
@@ -191,7 +247,6 @@ def migrate_backfill_canonical_keys() -> int:
                 {"canonical_key": None}
             ]
         })
-        updated = 0
         for doc in cursor:
             pname = doc.get("product_name") or ""
             if not pname:
@@ -200,12 +255,43 @@ def migrate_backfill_canonical_keys() -> int:
             if ck:
                 database.db.price_history.update_one(
                     {"_id": doc["_id"]},
-                    {"$set": {"canonical_key": ck}}
+                    {"$set": {"canonical_key": ck, "product_name": clean_product_title(pname)}}
                 )
                 updated += 1
+
+        # 2. Clean legacy corrupted _pack keys
+        corrupted_cursor = database.db.price_history.find({
+            "canonical_key": re.compile(r'_pack\d+', re.I)
+        })
+        for doc in corrupted_cursor:
+            old_ck = doc.get("canonical_key", "")
+            pname = doc.get("product_name", "")
+            new_ck = compute_canonical_key(pname) if pname else re.sub(r'_pack\d+', '', old_ck).strip('_')
+            if new_ck and new_ck != old_ck:
+                database.db.price_history.update_one(
+                    {"_id": doc["_id"]},
+                    {"$set": {"canonical_key": new_ck, "product_name": clean_product_title(pname)}}
+                )
+                updated += 1
+
+        # 3. Clean legacy corrupted 'add_' or 'add_to_compare' keys
+        corrupted_add = database.db.price_history.find({
+            "canonical_key": re.compile(r'^add_', re.I)
+        })
+        for doc in corrupted_add:
+            pname = doc.get("product_name", "")
+            if pname:
+                new_ck = compute_canonical_key(pname)
+                if new_ck and not new_ck.startswith("add_"):
+                    database.db.price_history.update_one(
+                        {"_id": doc["_id"]},
+                        {"$set": {"canonical_key": new_ck, "product_name": clean_product_title(pname)}}
+                    )
+                    updated += 1
+
         _backfill_done = True
         if updated > 0:
-            logger.info(f"[PricePrediction] Backfilled canonical_key for {updated} price records.")
+            logger.info(f"[PricePrediction] Cleaned and backfilled canonical_key for {updated} price records.")
         return updated
     except Exception as e:
         logger.error(f"[PricePrediction] Error backfilling canonical keys: {e}")
@@ -432,8 +518,17 @@ def _extract_all_product_items(platform_data: Any) -> List[Dict[str, Any]]:
             if "title" in platform_data or "product_name" in platform_data:
                 items.append(platform_data)
             else:
-                for val in platform_data.values():
-                    items.extend(_extract_all_product_items(val))
+                for k, val in platform_data.items():
+                    if isinstance(val, dict):
+                        item_copy = dict(val)
+                        if "platform" not in item_copy:
+                            for mp in SUPPORTED_MARKETPLACES:
+                                if mp in str(k).lower():
+                                    item_copy["platform"] = mp
+                                    break
+                        items.extend(_extract_all_product_items(item_copy))
+                    else:
+                        items.extend(_extract_all_product_items(val))
 
     return items
 
@@ -516,28 +611,41 @@ def _record_items_worker(items: List[Dict[str, Any]], query: str) -> int:
 
 def record_search_prices_to_history(
     query: str,
-    platform_data: Any
+    platform_data: Any,
+    sync: bool = True
 ) -> Dict[str, Any]:
     """
-    Whenever a user searches, asynchronously persist actual product prices collected from
+    Whenever a user searches, persist actual product prices collected from
     Amazon, Flipkart, Meesho, and GEC E-Commerce with timestamps into MongoDB `price_history`.
-    Extracts all searched products without delaying search response time.
+    Extracts all searched products and returns a platform status map.
     """
     clean_q = str(query or "").strip()
     all_items = _extract_all_product_items(platform_data)
     if not all_items:
         return {"recorded": 0, "status": "no_items"}
 
+    status_map: Dict[str, Any] = {"recorded": len(all_items), "status": "recorded"}
+    for it in all_items:
+        p = str(it.get("platform") or "").lower()
+        for mp in SUPPORTED_MARKETPLACES:
+            if mp in p or (mp == "gec" and any(x in p for x in ("gececom", "gec", "gec ecom", "gec e-commerce"))):
+                status_map[mp] = True
+
     try:
-        _bg_record_executor.submit(_record_items_worker, all_items, clean_q)
-        return {"recorded": len(all_items), "status": "queued"}
+        if sync:
+            cnt = _record_items_worker(all_items, clean_q)
+            status_map["recorded"] = cnt
+        else:
+            _bg_record_executor.submit(_record_items_worker, all_items, clean_q)
+        return status_map
     except Exception as e:
-        logger.warning(f"[PricePrediction] Failed to dispatch background price recording: {e}")
+        logger.warning(f"[PricePrediction] Failed recording: {e}")
         try:
             cnt = _record_items_worker(all_items, clean_q)
-            return {"recorded": cnt, "status": "synced"}
+            status_map["recorded"] = cnt
+            return status_map
         except Exception:
-            return {"recorded": 0, "status": "error"}
+            return status_map
 
 
 def fetch_historical_points_for_platform(
@@ -550,7 +658,7 @@ def fetch_historical_points_for_platform(
     """
     Retrieve real timestamped historical price observations from MongoDB for a marketplace.
     Guarantees product isolation using canonical_key so different products never share price history.
-    Harvests real past prices from existing collections if historical observations < 2 without fake data.
+    Harvests real past prices from existing collections if historical observations < 3 without fake data.
     """
     if database.db is None:
         init_db()
@@ -559,8 +667,9 @@ def fetch_historical_points_for_platform(
 
     plat_pattern = _get_platform_mongo_pattern(platform)
     clean_q = (query or "").strip()
-    clean_pname = (product_name or "").strip()
+    clean_pname = clean_product_title(product_name or clean_q).strip()
     target_ck = str(canonical_key or compute_canonical_key(clean_pname or clean_q)).strip().lower()
+    fam_ck = extract_canonical_family_key(target_ck)
 
     docs: List[Dict[str, Any]] = []
 
@@ -574,14 +683,54 @@ def fetch_historical_points_for_platform(
         except Exception:
             docs = []
 
-    # 2. Check distinct dates; if < 2, harvest real past price records for this product
     distinct_dates = set()
     for d in docs:
         dt_obj = _normalize_dt(d.get("recorded_at") or d.get("date") or d.get("created_at"))
         if dt_obj:
             distinct_dates.add(dt_obj.strftime("%Y-%m-%d"))
 
-    if len(distinct_dates) < 2 and (clean_pname or clean_q):
+    # 2. Product Family Query: if distinct dates < 3, query family key variants
+    if len(distinct_dates) < 3 and fam_ck:
+        try:
+            fam_docs = list(database.db.price_history.find({
+                "platform": plat_pattern,
+                "canonical_key": {"$regex": f"^{re.escape(fam_ck)}(?:_|$)", "$options": "i"}
+            }).sort([("recorded_at", 1), ("date", 1)]).limit(limit))
+            seen_ids = {d["_id"] for d in docs if "_id" in d}
+            for fd in fam_docs:
+                if fd.get("_id") not in seen_ids:
+                    docs.append(fd)
+                    seen_ids.add(fd.get("_id"))
+                    dt_obj = _normalize_dt(fd.get("recorded_at") or fd.get("date") or fd.get("created_at"))
+                    if dt_obj:
+                        distinct_dates.add(dt_obj.strftime("%Y-%m-%d"))
+        except Exception as e:
+            logger.debug(f"[PricePrediction] Family query error: {e}")
+
+    # 3. Lookahead Token Matching: if distinct dates < 3, match by brand + model tokens
+    if len(distinct_dates) < 3:
+        target_tokens = _extract_significant_tokens(clean_pname or clean_q)
+        if len(target_tokens) >= 2:
+            top_tokens = target_tokens[:3]
+            lookahead_pat = "".join(f"(?=.*{re.escape(t)})" for t in top_tokens)
+            try:
+                token_docs = list(database.db.price_history.find({
+                    "platform": plat_pattern,
+                    "product_name": {"$regex": lookahead_pat, "$options": "i"}
+                }).sort([("recorded_at", 1), ("date", 1)]).limit(limit))
+                seen_ids = {d["_id"] for d in docs if "_id" in d}
+                for td in token_docs:
+                    if td.get("_id") not in seen_ids:
+                        docs.append(td)
+                        seen_ids.add(td.get("_id"))
+                        dt_obj = _normalize_dt(td.get("recorded_at") or td.get("date") or td.get("created_at"))
+                        if dt_obj:
+                            distinct_dates.add(dt_obj.strftime("%Y-%m-%d"))
+            except Exception:
+                pass
+
+    # 4. Harvest real past price records from catalog if distinct dates < 3
+    if len(distinct_dates) < 3 and (clean_pname or clean_q):
         harvest_real_price_history_for_product(
             clean_pname or clean_q,
             canonical_key=target_ck,
@@ -589,48 +738,48 @@ def fetch_historical_points_for_platform(
         )
         if target_ck:
             try:
-                docs = list(database.db.price_history.find({
+                h_docs = list(database.db.price_history.find({
                     "platform": plat_pattern,
-                    "canonical_key": target_ck
+                    "$or": [
+                        {"canonical_key": target_ck},
+                        {"canonical_key": {"$regex": f"^{re.escape(fam_ck)}(?:_|$)", "$options": "i"}} if fam_ck else {"canonical_key": target_ck}
+                    ]
                 }).sort([("recorded_at", 1), ("date", 1)]).limit(limit))
+                seen_ids = {d["_id"] for d in docs if "_id" in d}
+                for hd in h_docs:
+                    if hd.get("_id") not in seen_ids:
+                        docs.append(hd)
+                        seen_ids.add(hd.get("_id"))
+                        dt_obj = _normalize_dt(hd.get("recorded_at") or hd.get("date") or hd.get("created_at"))
+                        if dt_obj:
+                            distinct_dates.add(dt_obj.strftime("%Y-%m-%d"))
             except Exception:
-                docs = []
-
-    # 3. Fallback: if no docs found by canonical_key yet (e.g. unmigrated records), match by specific brand + model tokens
-    if not docs:
-        target_tokens = _extract_significant_tokens(clean_pname or clean_q)
-        if len(target_tokens) >= 2:
-            top_tokens = target_tokens[:3]
-            lookahead_pat = "".join(f"(?=.*{re.escape(t)})" for t in top_tokens)
-            try:
-                docs = list(database.db.price_history.find({
-                    "platform": plat_pattern,
-                    "product_name": re.compile(lookahead_pat, re.IGNORECASE)
-                }).sort([("recorded_at", 1), ("date", 1)]).limit(limit))
-            except Exception:
-                docs = []
-            # Stamp matched unindexed docs with canonical_key
-            if docs and target_ck:
-                for d in docs:
-                    if not d.get("canonical_key"):
-                        try:
-                            database.db.price_history.update_one(
-                                {"_id": d["_id"]},
-                                {"$set": {"canonical_key": target_ck}}
-                            )
-                        except Exception:
-                            pass
+                pass
 
     if not docs:
         return []
 
-    # Parse and deduplicate by calendar date (keep latest price observation for each day)
+    # 5. Outlier Rejection: median price boundary filtering (prevents accessories from corrupting prices)
+    valid_prices = []
+    for d in docs:
+        p = _parse_numeric_price(d.get("price"))
+        if p and p > 0:
+            valid_prices.append(p)
+
+    median_price = float(np.median(valid_prices)) if valid_prices else 0.0
+
+    # 6. Parse and deduplicate by calendar date (keep latest price observation for each day)
     points_by_date: Dict[str, Dict[str, Any]] = {}
 
     for d in docs:
         price = _parse_numeric_price(d.get("price"))
         if not price or price <= 0:
             continue
+
+        # Reject accessories or extreme outliers if median exists
+        if median_price > 0 and len(valid_prices) >= 3:
+            if price < 0.35 * median_price or price > 2.8 * median_price:
+                continue
 
         raw_dt = d.get("recorded_at") or d.get("date") or d.get("created_at") or d.get("timestamp")
         dt_obj = _normalize_dt(raw_dt)
@@ -1104,6 +1253,39 @@ def predict_single_product_7d(
             product_name=clean_pname,
             canonical_key=target_ck
         )
+
+    # Automatically persist live price to MongoDB if not recorded today, ensuring graph auto-refreshes
+    if current_price and current_price > 0 and clean_pname:
+        try:
+            now_utc = datetime.now(timezone.utc)
+            today_str = now_utc.strftime("%Y-%m-%d")
+            def _async_record_single():
+                try:
+                    target_p = norm_plat_key or "amazon"
+                    exists = database.db.price_history.find_one({
+                        "canonical_key": target_ck,
+                        "platform": _get_platform_mongo_pattern(target_p),
+                        "$or": [
+                            {"recorded_at": {"$gte": now_utc - timedelta(hours=1)}},
+                            {"timestamp": re.compile(rf"^{today_str}")}
+                        ]
+                    })
+                    if not exists:
+                        database.db.price_history.insert_one({
+                            "product_name": clean_pname,
+                            "platform": target_p,
+                            "price": float(current_price),
+                            "canonical_key": target_ck,
+                            "recorded_at": now_utc,
+                            "date": now_utc,
+                            "timestamp": now_utc.strftime("%Y-%m-%d %H:%M:%S"),
+                            "source": "live_price_view"
+                        })
+                except Exception:
+                    pass
+            _bg_record_executor.submit(_async_record_single)
+        except Exception:
+            pass
 
     # Fallback: if specific platform has < min_points, try fetching across platforms for this canonical product
     if len(points) < min_points and target_ck:

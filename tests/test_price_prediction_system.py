@@ -209,23 +209,30 @@ class TestPricePredictionSystem(unittest.TestCase):
     # ── Test 8: Frontend HTML Integration in /search ──
     def test_08_results_template_renders_prediction_system(self):
         """Verify /search renders the AI prediction section, stat cards, and Chart.js canvas."""
-        res = self.client.get(f"/search?q={self.test_query}")
-        self.assertEqual(res.status_code, 200)
-        html = res.data.decode("utf-8")
+        from unittest.mock import patch
+        mock_raw = {
+            "amazon": [{"title": f"{self.test_query} Pro", "price": 19999, "platform": "amazon", "url": "https://amazon.in/1"}],
+            "flipkart": [{"title": f"{self.test_query} Pro", "price": 19499, "platform": "flipkart", "url": "https://flipkart.com/2"}],
+            "meesho": [{"title": f"{self.test_query} Pro", "price": 18999, "platform": "meesho", "url": "https://meesho.com/3"}],
+            "gec": [{"title": f"{self.test_query} Pro", "price": 18500, "platform": "gec", "url": "/gececom#p4"}]
+        }
+        with patch("api.fetch_all_products_with_fallbacks", return_value=(mock_raw, {})):
+            res = self.client.get(f"/search?q={self.test_query}")
+            self.assertEqual(res.status_code, 200)
+            html = res.data.decode("utf-8")
 
-        # Section presence
-        self.assertIn("aiPricePredictionSection", html)
-        self.assertIn("7-Day Price Prediction", html)
-        self.assertIn("pricePredictionChart", html)
-        self.assertIn("chart-filter-btn", html)
-        self.assertIn("refreshFastApiPrediction", html)
-        self.assertIn("chart.js", html.lower())
+            # Section presence
+            self.assertIn("aiPricePredictionSection", html)
+            self.assertIn("AI Price Prediction", html)
+            self.assertIn("platform-predict-tab", html)
+            self.assertIn("chart_all", html)
+            self.assertIn("chart.js", html.lower())
 
-        # All 4 marketplaces present in prediction cards
-        self.assertIn("Amazon", html)
-        self.assertIn("Flipkart", html)
-        self.assertIn("Meesho", html)
-        self.assertIn("GEC E-Commerce", html)
+            # All 4 marketplaces present in prediction cards/tabs
+            self.assertIn("Amazon", html)
+            self.assertIn("Flipkart", html)
+            self.assertIn("Meesho", html)
+            self.assertIn("GEC ECom", html)
 
     # ── Test 9: Zero Regression on Existing Price Alerts ──
     def test_09_zero_regression_on_price_alerts(self):

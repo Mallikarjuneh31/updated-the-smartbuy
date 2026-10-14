@@ -198,17 +198,21 @@ def normalize_weight(text: Optional[str]) -> Optional[str]:
 
 def normalize_pack_quantity(text: Optional[str]) -> str:
     """
-    Extract and normalize pack quantity (e.g. 'Pack of 3' -> '3', '2 items' -> '2'). Defaults to '1'.
+    Extract and normalize pack quantity (e.g. 'Pack of 3' -> '3', 'Set of 2' -> '2'). Defaults to '1'.
+    Avoids erroneously matching standalone numbers like phone and laptop models (e.g. iPhone 15).
     """
     if not text:
         return "1"
     raw = str(text).lower()
-    m = re.search(r'(?:pack\s*of\s*|pack-|\bx\s*|combo\s*of\s*|set\s*of\s*)(\d+)', raw)
+    m = re.search(r'\b(?:pack\s*of|combo\s*of|set\s*of|pack-)\s*(\d+)\b', raw)
     if m:
         return m.group(1)
-    digits = re.sub(r'[^\d]', '', raw)
-    if digits and 1 <= int(digits) <= 50:
-        return str(int(digits))
+    m2 = re.search(r'\b(\d+)\s*(?:pack|packs|pcs|pieces|units)\b', raw)
+    if m2:
+        return m2.group(1)
+    m3 = re.search(r'\b(?:x|qty|quantity)\s*[:\-]?\s*(\d+)\b', raw)
+    if m3:
+        return m3.group(1)
     return "1"
 
 
